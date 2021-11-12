@@ -1,0 +1,53 @@
+---
+title: "Accessing Data"
+author: "Aravind Menon"
+date: "11/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r, echo=FALSE}
+#uploading libraries
+library(dplyr)
+library(tidyverse)
+library(pdftools)
+library(stringr)
+library(lubridate)
+library(readr)
+library(ggplot2)
+library(gridExtra)
+#Reading in data from Boston.gov website on property financial assessment for years 2017 to 2021
+
+eval2017<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/062fc6fa-b5ff-4270-86cf-202225e40858/download/property-assessment-fy2017.csv")
+
+eval2018<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/fd351943-c2c6-4630-992d-3f895360febd/download/ast2018full.csv")
+
+eval2019<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/695a8596-5458-442b-a017-7cd72471aade/download/fy19fullpropassess.csv")
+
+eval2020<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/8de4e3a0-c1d2-47cb-8202-98b9cbe3bd04/download/data2020-full.csv")
+
+eval2021<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/c4b7331e-e213-45a5-adda-052e4dd31d41/download/data2021-full.csv")
+
+
+```
+
+
+```{r , echo=FALSE}
+#Removing non residential property based on property codes
+# Residential Properties are coded with Ptype codes ranging from 010 to 211
+
+eval2017res<-eval2017%>%filter(eval2017$PTYPE<=212)
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
