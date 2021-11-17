@@ -47,7 +47,14 @@ eval2021<-read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce
 
 eval2017res<-eval2017%>%filter(eval2017$PTYPE<=212)
 
+eval2018res<-eval2018%>%filter(eval2018$PTYPE<=212)
 
+eval2019res<-eval2019%>%filter(eval2019$PTYPE<=212)
+
+eval2020res<-eval2020%>%filter(eval2020$PTYPE<=212)
+
+#For 2021 Ptype not specified. For 2020 all Ptypes were residential N=175052
+eval2021res<-eval2021
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
