@@ -58,3 +58,35 @@ eval2021res<-eval2021
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+# Adding data and Curating data based ZipCode
+
+#Installing AQI data by monitors foR 2021
+library(readr)
+AQI2021<-read_csv("annual_conc_by_monitor_2021.csv")
+AQI2021<- AQI2021%>%filter(AQI2021$`City Name`=='Boston')
+
+# Within boston there are only three data points available. We can use that for longitudingal change. Not sure if we can use this for comparing neighbourhood. We will have to reverse geocode the point to zipcode. The three points are in Kenmore, Harrison Ave and Dorchester(near andrew square) 
+
+
+```
+
+
+```{r}
+
+#Reading ADI data
+#Available in 2015 and 2019 and downladed for MA. Need to filter based on the Zipcodes that we are looking at. 
+
+
+ADI2019<- read.delim('MA_2019_ADI_9 Digit Zip Code_v3.1.txt')
+
+ADI2015<- read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt')
+
+```
+
+```{r}
+# School data
+
+```
+

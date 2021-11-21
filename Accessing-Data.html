@@ -269,6 +269,32 @@ summary {
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
+<pre class="r"><code># Adding data and Curating data based ZipCode
+
+#Installing AQI data by monitors foR 2021
+library(readr)
+AQI2021&lt;-read_csv(&quot;annual_conc_by_monitor_2021.csv&quot;)</code></pre>
+<pre><code>## Rows: 13253 Columns: 55</code></pre>
+<pre><code>## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;,&quot;
+## chr  (19): State Code, County Code, Site Num, Datum, Parameter Name, Sample ...
+## dbl  (29): Parameter Code, POC, Latitude, Longitude, Year, Observation Count...
+## dttm  (6): 1st Max DateTime, 2nd Max DateTime, 3rd Max DateTime, 4th Max Dat...
+## date  (1): Date of Last Change</code></pre>
+<pre><code>## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>AQI2021&lt;- AQI2021%&gt;%filter(AQI2021$`City Name`==&#39;Boston&#39;)
+
+# Within boston there are only three data points available. We can use that for longitudingal change. Not sure if we can use this for comparing neighbourhood. We will have to reverse geocode the point to zipcode. The three points are in Kenmore, Harrison Ave and Dorchester(near andrew square) </code></pre>
+<pre class="r"><code>#Reading ADI data
+#Available in 2015 and 2019 and downladed for MA. Need to filter based on the Zipcodes that we are looking at. 
+
+
+ADI2019&lt;- read.delim(&#39;MA_2019_ADI_9 Digit Zip Code_v3.1.txt&#39;)
+
+ADI2015&lt;- read.delim(&#39;MA_2015_ADI_9 Digit Zip Code_v3.1.txt&#39;)</code></pre>
+<pre class="r"><code># School data</code></pre>
 </div>
 
 
