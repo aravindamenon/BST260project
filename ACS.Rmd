@@ -1,0 +1,70 @@
+---
+title: "ACS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+```{r pressure, echo=FALSE}
+#Package installation and loading (if you don't have the package)
+install.packages("acs")
+install.packages("tigris")
+install.packages("sf")
+install.packages("viridis")
+install.packages("tidycensus")
+library(tidycensus)
+library(tidyverse)
+library(dplyr)
+library(acs)
+library(tigris)
+library(sf)
+library(viridis)
+
+#Pulling from ACS data to create metro map
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+census_api_key("a90e0e8b486012bb28c11b7dbfe5275470db95dd")
+rent <- get_acs(geography = "tract", variables = "DP04_0134", 
+                state = c("MA"), geometry = TRUE)
+head(rent)
+
+rent <- get_acs(geography = "tract", variables = "DP04_0134", 
+                state = c("MA"), geometry = TRUE)
+metros <- core_based_statistical_areas(cb = TRUE) %>% filter(GEOID %in% 
+                                                               c("14460")) %>% select(metro_name = NAME)
+
+wc_rent <- st_join(rent, metros, join = st_within, left = FALSE)
+ggplot(wc_rent, aes(fill = estimate, color = estimate)) + geom_sf() + 
+  coord_sf(crs = 26910) + theme_minimal() + theme(aspect.ratio = 1) + 
+  scale_fill_viridis() + scale_color_viridis()
+
+#A blander approach
+MACounty <- map_data("county", "mass")
+MACounty%>% ggplot(aes(x = long, y = lat, group = group)) + 
+  geom_polygon(fill = "white", color = "black") +
+  theme(panel.grid.major = element_blank(), 
+        panel.background = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  coord_fixed(1.3)
+
+MASuffolk <- MACounty %>% filter(subregion=="suffolk")
+MASuffolk%>% ggplot(aes(x = long, y = lat, group = group)) + 
+  geom_polygon(fill = "white", color = "black") +
+  ggtitle("Suffolk County") +
+  theme(panel.grid.major = element_blank(), 
+        panel.background = element_blank(),
+        axis.title = element_blank(), 
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  coord_fixed(1.3)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
