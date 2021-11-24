@@ -1,0 +1,358 @@
+---
+title: "Redfin-2021-Sale-Data"
+author: "ZsuZsuChen"
+date: "11/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(rvest)
+library(stringr)
+library(stringi)
+library(tidyverse)
+library(dplyr)
+
+```
+
+2021 housing sales data scraped from Redfin.
+
+```{r}
+get_sale_info <- function(x){
+  h <- read_html(x)
+  address <- h %>% html_node(".homeAddress , .dp-subtext") %>% html_text()
+  price <- h %>% html_node(".statsValue") %>% html_text() %>% str_replace_all(c("[^[:alnum:]]"=""))
+  sqrft <- h %>% html_node(".sqft-section") %>% html_text() %>% str_replace_all(c("[^[:alnum:]]"="", "SqFt"=""))
+  bed <- h %>% html_node(".home-main-stats-variant") %>% html_text() %>% str_extract("Price\\d*?Beds") %>% 
+    str_replace_all(c("Price"="", "Beds"=""))
+  bath <- h %>% html_node(".baths-section") %>% html_text() %>% str_replace("Baths","")
+  community <- h %>% html_node(".keyDetailsList, .text-right") %>% html_text() %>% str_extract("Community(.*?)Lot|Community(.*?)MLS") %>%
+    str_replace_all(c("Community"="", "Lot"="", "MLS"=""))
+  walk <- h %>% html_node(".walkscore") %>% html_text() %>% str_replace_all(" / 100", "")
+  tab <- h %>% html_nodes("table") %>% .[2]
+  tab <- tab %>% html_table %>% .[[1]] 
+  tab <- tab %>% setNames(c("Rating and School", "n students", "Reviews", "Distance"))
+  school <-tab[,"Rating and School"]
+  school <- school %>% str_replace_all(c("[^[:alnum:]]"="", "Public.*"="", "[:digit:]"=""))
+      return(as.data.frame(list("Address"=address, "Sale Price"= price, "Sqr Ft"=sqrft, "Bedrooms"=bed, "Baths"=bath, "Neighborhood"=community,
+                       "Walk Score"=walk, "School District" = school)))
+}
+
+se1<-get_sale_info("https://www.redfin.com/MA/Boston/81-Waltham-St-02118/unit-4/home/9281055")
+se2<-get_sale_info("https://www.redfin.com/MA/Boston/23-Upton-St-02118/unit-3/home/176651583")
+se3<-get_sale_info("https://www.redfin.com/MA/Boston/485-Harrison-Ave-02118/unit-204/home/9320601")
+se4<-get_sale_info("https://www.redfin.com/MA/Boston/242-Shawmut-Ave-02118/home/17540673")
+se5<-get_sale_info("https://www.redfin.com/MA/Boston/66-Appleton-St-02116/unit-2/home/9306592")
+dor1<-get_sale_info("https://www.redfin.com/MA/Boston/424-Gallivan-Blvd-02124/home/9102497")
+dor2<-get_sale_info("https://www.redfin.com/MA/Boston/6-Ashmont-St-02124/unit-3/home/143295782")
+dor3<-get_sale_info("https://www.redfin.com/MA/Dorchester/141-Savin-Hill-Ave-02125/unit-33B/home/177048880")
+dor4<-get_sale_info("https://www.redfin.com/MA/Boston/160-Grampian-Way-02125/home/9094226")
+dor5<-get_sale_info("https://www.redfin.com/MA/Boston/29-Gibson-St-02122/unit-2L/home/12431828")
+rox1<-get_sale_info("https://www.redfin.com/MA/Boston/43-Circuit-St-02119/unit-1/home/9289287")
+rox2<-get_sale_info("https://www.redfin.com/MA/Boston/16-Fernboro-St-02121/home/9065030")
+rox3<-get_sale_info("https://www.redfin.com/MA/Boston/38-Woodford-St-02125/home/9073499")
+rox4<-get_sale_info("https://www.redfin.com/MA/Boston/66-Rockland-St-02119/home/9327360")
+rox5<-get_sale_info("https://www.redfin.com/MA/Boston/28-Wabon-St-02121/home/9087602")
+jp1<-get_sale_info("https://www.redfin.com/MA/Boston/91-Rossmore-Rd-02130/unit-3/home/45407082")
+jp2<-get_sale_info("https://www.redfin.com/MA/Jamaica-Plain/21-Edge-Hill-St-02130/home/9146917")
+jp3<-get_sale_info("https://www.redfin.com/MA/Jamaica-Plain/4-Bolster-St-02130/home/9143804")
+jp4<-get_sale_info("https://www.redfin.com/MA/Boston/67-Weld-Hill-St-02130/unit-2/home/9139925")
+jp5<-get_sale_info("https://www.redfin.com/MA/Boston/18-Boynton-St-02130/unit-2/home/18982912")
+ros1<-get_sale_info("https://www.redfin.com/MA/Boston/11-Sherwood-St-02131/unit-1/home/9311516")
+ros2<-get_sale_info("https://www.redfin.com/MA/Boston/4625-Washington-St-02131/unit-1/home/176368880")
+ros3<-get_sale_info("https://www.redfin.com/MA/Boston/76-Maynard-St-02131/home/9178516")
+ros4<-get_sale_info("https://www.redfin.com/MA/Boston/137-Poplar-St-02131/unit-3/home/18995201")
+ros5<-get_sale_info("https://www.redfin.com/MA/Boston/67-Weld-Hill-St-02130/unit-2/home/9139925")
+sb1<-get_sale_info("https://www.redfin.com/MA/Boston/6-Peters-St-02127/unit-1/home/9302522")
+sb2<-get_sale_info("https://www.redfin.com/MA/Boston/720-E-2nd-St-02127/unit-1/home/40274327")
+sb3<-get_sale_info("https://www.redfin.com/MA/Boston/406-E-3rd-St-02127/unit-4/home/176339809")
+sb4<-get_sale_info("https://www.redfin.com/MA/Boston/181-M-St-02127/home/9192674")
+sb5<-get_sale_info("https://www.redfin.com/MA/Boston/17-Thomas-Park-02127/unit-1/home/9318601")
+bri1<-get_sale_info("https://www.redfin.com/MA/Boston/1986-Commonwealth-Ave-02135/unit-2/home/9032489")
+bri2<-get_sale_info("https://www.redfin.com/MA/Boston/121-Tremont-St-02135/unit-D3/home/9041039")
+bri3<-get_sale_info("https://www.redfin.com/MA/Brighton/141-Nottinghill-Rd-02135/unit-1/home/9328721")
+bri4<-get_sale_info("https://www.redfin.com/MA/Brighton/55-Brooksdale-Rd-02135/home/9013330")
+bri5<-get_sale_info("https://www.redfin.com/MA/Boston/5-Vinal-St-02135/unit-4/home/11508834")
+ne1<-get_sale_info("https://www.redfin.com/MA/Boston/43-Commercial-Wharf-02110/unit-6/home/9259439")
+ne2<-get_sale_info("https://www.redfin.com/MA/Boston/59-Fleet-St-02109/unit-5/home/9269712")
+ne3<-get_sale_info("https://www.redfin.com/MA/Boston/440-Commercial-St-02109/unit-202/home/11838543")
+ne4<-get_sale_info("https://www.redfin.com/MA/Boston/371-Hanover-St-02113/unit-5/home/18982985")
+ne5<-get_sale_info("https://www.redfin.com/MA/Boston/371-Hanover-St-02113/unit-5/home/18982985")
+chr1<-get_sale_info("https://www.redfin.com/MA/Boston/36-Concord-St-02129/unit-2/home/9049086")
+chr2<-get_sale_info("https://www.redfin.com/MA/Boston/82-Bunker-Hill-St-02129/unit-82A/home/9062453")
+chr3<-get_sale_info("https://www.redfin.com/MA/Charlestown/9-Prospect-St-02129/unit-1/home/107248465")
+chr4<-get_sale_info("https://www.redfin.com/MA/Boston/58-High-St-02129/unit-3/home/9061513")
+chr5<-get_sale_info("https://www.redfin.com/MA/Charlestown/26-Green-St-02129/home/9062043")
+bb1<-get_sale_info("https://www.redfin.com/MA/Boston/382-Commonwealth-Ave-02215/unit-11/home/9271922")
+bb2<-get_sale_info("https://www.redfin.com/MA/Boston/43-Commonwealth-Ave-02116/unit-2/home/9252613")
+bb3<-get_sale_info("https://www.redfin.com/MA/Boston/350-Marlborough-St-02115/unit-2/home/11836783")
+bb4<-get_sale_info("https://www.redfin.com/MA/Boston/483-Beacon-St-02115/unit-36/home/9244007")
+bb5<-get_sale_info("https://www.redfin.com/MA/Boston/473-Beacon-St-02115/unit-4/home/9244242")
+hp1<-get_sale_info("https://www.redfin.com/MA/Hyde-Park/6-Colchester-St-02136/home/9135129")
+hp2<-get_sale_info("https://www.redfin.com/MA/Hyde-Park/935-Metropolitan-Ave-02136/home/9127914")
+hp3<-get_sale_info("https://www.redfin.com/MA/Hyde-Park/77-W-Milton-St-02136/home/9134598")
+hp4<-get_sale_info("https://www.redfin.com/MA/Boston/1399-River-St-02136/unit-2/home/67978823")
+hp5<-get_sale_info("https://www.redfin.com/MA/Hyde-Park/22-Highland-St-02136/home/9129522")
+all1<-get_sale_info("https://www.redfin.com/MA/Boston/3-Raymond-St-02134/unit-A/home/8987491")
+all2<-get_sale_info("https://www.redfin.com/MA/Boston/50-Hichborn-St-02135/unit-202/home/170710699")
+all3<-get_sale_info("https://www.redfin.com/MA/Allston/15-N-Beacon-St-02134/unit-908/home/8988604")
+eb1<-get_sale_info("https://www.redfin.com/MA/Boston/335-Maverick-St-02128/unit-1/home/167090092")
+eb2<-get_sale_info("https://www.redfin.com/MA/Boston/134-Coleridge-St-02128/home/9110976")
+eb3<-get_sale_info("https://www.redfin.com/MA/Boston/439-Chelsea-St-02128/home/9114202")
+eb4<-get_sale_info("https://www.redfin.com/MA/Boston/321-Meridian-St-02128/unit-1/home/9314852")
+eb5<-get_sale_info("https://www.redfin.com/MA/Boston/276-Princeton-St-02128/unit-3/home/101740384")
+chest1<-get_sale_info("https://www.redfin.com/MA/Chestnut-Hill/76-Boylston-St-02467/unit-5/home/11481107")
+chest2<-get_sale_info("https://www.redfin.com/MA/Chestnut-Hill/515-Beacon-St-02467/home/11459025")
+chest3<-get_sale_info("https://www.redfin.com/MA/Chestnut-Hill/321-Hammond-Pond-Pkwy-02467/unit-307/home/49739693")
+chest4<-get_sale_info("https://www.redfin.com/MA/Chestnut-Hill/127-Eliot-St-02467/home/11484319")
+chest5<-get_sale_info("https://www.redfin.com/MA/Chestnut-Hill/67-Eliot-St-02467/home/11484435")
+wrox1<-get_sale_info("https://www.redfin.com/MA/West-Roxbury/52-Westover-St-02132/unit-52/home/171582109")
+wrox2<-get_sale_info("https://www.redfin.com/MA/West-Roxbury/72-74-Manthorne-Rd-02132/unit-0/home/113708114")
+wrox3<-get_sale_info("https://www.redfin.com/MA/West-Roxbury/64-Partridge-St-02132/home/9215409")
+wrox4<-get_sale_info("https://www.redfin.com/MA/West-Roxbury/1-Salman-St-02132/home/9220384")
+wrox5<-get_sale_info("https://www.redfin.com/MA/West-Roxbury/102-Anawan-Ave-02132/home/9208396")
+beac1<-get_sale_info("https://www.redfin.com/MA/Boston/73-Revere-St-02114/unit-4/home/9256915")
+beac2<-get_sale_info("https://www.redfin.com/MA/Boston/11-Revere-St-02114/unit-3/home/9258369")
+beac3<-get_sale_info("https://www.redfin.com/MA/Boston/51-Hancock-St-02114/unit-12B/home/9227983")
+beac4<-get_sale_info("https://www.redfin.com/MA/Boston/19-Charles-River-Sq-02114/home/9256309")
+beac5<-get_sale_info("https://www.redfin.com/MA/Boston/19-Charles-River-Sq-02114/home/9256309")
+fen1<-get_sale_info("https://www.redfin.com/MA/Boston/270-Huntington-Ave-02115/unit-307/home/9234772")
+fen2<-get_sale_info("https://www.redfin.com/MA/Boston/1091-Boylston-St-02215/unit-21/home/9275788")
+fen3<-get_sale_info("https://www.redfin.com/MA/Boston/1111-Boylston-St-02215/unit-26/home/9240443")
+fen4<-get_sale_info("https://www.redfin.com/MA/Boston/70-Fenway-02115/unit-33/home/9265666")
+fen5<-get_sale_info("https://www.redfin.com/MA/Boston/137-Peterborough-St-02215/unit-29/home/9242256")
+sea1<-get_sale_info("https://www.redfin.com/MA/Boston/133-Seaport-Blvd-02210/unit-1807/home/174425860")
+sea2<-get_sale_info("https://www.redfin.com/MA/Boston/135-Seaport-Blvd-02210/unit-1103/home/176367936")
+sea3<-get_sale_info("https://www.redfin.com/MA/Boston/135-Seaport-Blvd-02210/unit-3C/home/176643029")
+sea4<-get_sale_info("https://www.redfin.com/MA/Boston/135-Seaport-Blvd-02210/unit-1708/home/173087546")
+sea5<-get_sale_info("https://www.redfin.com/MA/Boston/133-Seaport-Blvd-02210/unit-2106/home/173087742")
+dt1<-get_sale_info("https://www.redfin.com/MA/Boston/1-Franklin-St-02110/unit-1105/home/145254395")
+dt2<-get_sale_info("https://www.redfin.com/MA/Boston/121-Portland-St-02114/unit-507/home/165787205")
+dt3<-get_sale_info("https://www.redfin.com/MA/Boston/121-Portland-St-02114/unit-704/home/144283659")
+dt4<-get_sale_info("https://www.redfin.com/MA/Boston/110-Sudbury-St-02114/unit-4302/home/176672663")
+dt5<-get_sale_info("https://www.redfin.com/MA/Boston/210-South-St-02111/unit-43/home/12440287")
+ct1<-get_sale_info("https://www.redfin.com/MA/Boston/2-Avery-St-02111/unit-25C/home/11736830")
+ct2<-get_sale_info("https://www.redfin.com/MA/Boston/48-Piedmont-St-02116/home/9313401")
+ct3<-get_sale_info("https://www.redfin.com/MA/Boston/1-Charles-St-S-02116/unit-707/home/9329859")
+ct4<-get_sale_info("https://www.redfin.com/MA/Boston/220-Boylston-St-02116/unit-9001/home/9263371")
+ct5<-get_sale_info("https://www.redfin.com/MA/Boston/220-Boylston-St-02116/unit-9013/home/9263397")
+matt1<-get_sale_info("https://www.redfin.com/MA/Boston/85-Greenfield-Rd-02126/home/9160601")
+matt2<-get_sale_info("https://www.redfin.com/MA/Boston/299-Norfolk-St-02124/home/9080021")
+matt3<-get_sale_info("https://www.redfin.com/MA/Mattapan/5-Violet-St-02126/home/9156853")
+matt4<-get_sale_info("https://www.redfin.com/MA/Mattapan/5-Violet-St-02126/home/9156853")
+matt5<-get_sale_info("https://www.redfin.com/MA/Boston/2-Winston-Rd-02124/home/11835084")
+brk1<-get_sale_info("https://www.redfin.com/MA/Brookline/20-Fuller-St-02446/unit-3/home/169937132")
+brk2<-get_sale_info("https://www.redfin.com/MA/Brookline/39-St-Paul-St-02446/unit-G1/home/11461572")
+brk3<-get_sale_info("https://www.redfin.com/MA/Brookline/101-Dean-Rd-02445/home/11482073")
+brk4<-get_sale_info("https://www.redfin.com/MA/Brookline/15-Kendall-St-02445/home/11491142")
+brk5<-get_sale_info("https://www.redfin.com/MA/Brookline/330-St-Paul-St-02446/unit-1/home/11442780")
+cam1<-get_sale_info("https://www.redfin.com/MA/Cambridge/5-Buckingham-Pl-02138/home/11588231")
+cam2<-get_sale_info("https://www.redfin.com/MA/Cambridge/5-Buckingham-Pl-02138/home/11588231")
+cam3<-get_sale_info("https://www.redfin.com/MA/Cambridge/250-Brattle-St-02138/unit-21/home/11595098")
+cam4<-get_sale_info("https://www.redfin.com/MA/Cambridge/86-Henry-St-02139/unit-3/home/11598909")
+cam5<-get_sale_info("https://www.redfin.com/MA/Cambridge/90-Holworthy-St-02138/home/11592718")
+som1<-get_sale_info("https://www.redfin.com/MA/Somerville/40-Raymond-Ave-02144/unit-B/home/18906885")
+som2<-get_sale_info("https://www.redfin.com/MA/Somerville/31-Adams-St-02145/unit-2/home/17569699")
+som3<-get_sale_info("https://www.redfin.com/MA/Somerville/146-W-Adams-St-02144/home/8686407")
+som4<-get_sale_info("https://www.redfin.com/MA/Somerville/20-Holyoke-Rd-02144/home/8702689")
+som5<-get_sale_info("https://www.redfin.com/MA/Somerville/18-Leland-St-02143/home/8746198")
+
+```
+
+Creating list of names of individual dataframes.
+
+```{r}
+
+df_names <- list(se1,
+se2,
+se3,
+se4,
+se5,
+dor1,
+dor2,
+dor3,
+dor4,
+dor5,
+rox1,
+rox2,
+rox3,
+rox4,
+rox5,
+jp1,
+jp2,
+jp3,
+jp4,
+jp5,
+se1,
+se2,
+se3,
+se4,
+se5,
+dor1,
+dor2,
+dor3,
+dor4,
+dor5,
+rox1,
+rox2,
+rox3,
+rox4,
+rox5,
+jp1,
+jp2,
+jp3,
+jp4,
+jp5,
+ros1,
+ros2,
+ros3,
+ros4,
+ros5,
+sb1,
+sb2,
+sb3,
+sb4,
+sb5,
+se1,
+se2,
+se3,
+se4,
+se5,
+dor1,
+dor2,
+dor3,
+dor4,
+dor5,
+rox1,
+rox2,
+rox3,
+rox4,
+rox5,
+jp1,
+jp2,
+jp3,
+jp4,
+jp5,
+ros1,
+ros2,
+ros3,
+ros4,
+ros5,
+sb1,
+sb2,
+sb3,
+sb4,
+sb5,
+bri1,
+bri2,
+bri3,
+bri4,
+bri5,
+ne1,
+ne2,
+ne3,
+ne4,
+ne5,
+chr1,
+chr2,
+chr3,
+chr4,
+chr5,
+bb1,
+bb2,
+bb3,
+bb4,
+bb5,
+hp1,
+hp2,
+hp3,
+hp4,
+hp5,
+all1,
+all2,
+all3,
+eb1,
+eb2,
+eb3,
+eb4,
+eb5,
+chest1,
+chest2,
+chest3,
+chest4,
+chest5,
+wrox1,
+wrox2,
+wrox3,
+wrox4,
+wrox5,
+beac1,
+beac2,
+beac3,
+beac4,
+beac5,
+fen1,
+fen2,
+fen3,
+fen4,
+fen5,
+sea1,
+sea2,
+sea3,
+sea4,
+sea5,
+dt1,
+dt2,
+dt3,
+dt4,
+dt5,
+ct1,
+ct2,
+ct3,
+ct4,
+ct5,
+matt1,
+matt2,
+matt3,
+matt4,
+matt5,
+brk1,
+brk2,
+brk3,
+brk4,
+brk5,
+cam1,
+cam2,
+cam3,
+cam4,
+cam5,
+som1,
+som2,
+som3,
+som4,
+som5)
+```
+
+Rbind of all seperate housing datafiles into master dataframe.
+
+Data scraped from Redfin of listed recently sold properties stratified by neighborhood.
+
+* Address - property address
+* Sale.Price - price sold
+* Sqr.Ft - square footage
+* Bedrooms - no. bedrooms (NA listed for lofts)
+* Baths - no. baths
+* Neighborhood
+* Walk.Score - numeric score out of 100
+* School.District - 6 schools are listed given Boston lottery system
+
+**OF NOTE:** *There are duplicate entries for each individual property becuase 6 different schools are listed for each property. Decision will need to be made if we just want to select the first school listed or do some data wrangling where we group by address.
+
+
+```{r}
+df.2021sales<-do.call("rbind", df_names)
