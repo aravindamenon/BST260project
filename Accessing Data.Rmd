@@ -87,6 +87,8 @@ ADI2015<- read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt')
 
 ```{r}
 # School data
+# have requested data from Great schools website.If they dont give it to us, then whe will have to web scrape using this web address https://www.greatschools.org/search/search.page?page=4&q=boston&sort=rating&tableView=Academic&view=table
+
 
 ```
 
