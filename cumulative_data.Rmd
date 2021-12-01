@@ -761,9 +761,13 @@ df.2021sales <- clean_names(read_csv("Redfin_2021_SalesData.csv"))
 ### Joining all data for analysis
 
 ```{r}
-full_long <- eval_all %>% 
+# Dataset of all the factors affecting prices
+factors_long <- eval_all %>% 
   left_join(aqi_all) %>%  #joining by year, neighborhood
-  left_join(adi_all) %>% 
+  left_join(adi_all)
+
+# Dataset of all the factors plus sold prices from Redfin and Boston Magazine
+full_long <- factors_long %>% 
   full_join(df.bos.housing)
 
 ```
