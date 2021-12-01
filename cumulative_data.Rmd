@@ -387,7 +387,7 @@ adi2017 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep =
 adi_all <- full_join(adi2017, adi2019)
 ```
 
-### Redfin data 
+### Redfin and Boston Magazine data 
 
 Read html from Redfin for aggregrate housing sale trends in different Boston neighborhoods. Data from January 2020.
 
