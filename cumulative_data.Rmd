@@ -1,15 +1,24 @@
 ---
 title: "Cumulative analysis"
 author: "Bina Choi"
-date: "11/27/2021"
-output: html_document
+date: "12/01/2021"
+output: 
+  html_document:
+    toc: yes
+    
 ---
+
+Suppress messages for this markdown
+
+```{r setup}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
 
 ## Preparing data
 
-#### Uploading libraries
+### Uploading libraries
 
-```{r, echo=FALSE}
+```{r}
 #uploading libraries
 library(dplyr)
 library(tidyverse)
@@ -24,11 +33,13 @@ library(rvest)
 library(stringr)
 library(stringi)
 library(finalfit)
+library(skimr)
+library(gtsummary)
 ```
 
-#### Boston government website data
+### Boston government website data
 
-Reading in data from Boston.gov website on property financial assessment for years 2017 to 2021
+Reading in data from the [Boston.gov website](https://data.boston.gov/dataset/property-assessment) on property financial assessment for years 2017 to 2021:
 
 ```{r}
 eval2017<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/062fc6fa-b5ff-4270-86cf-202225e40858/download/property-assessment-fy2017.csv"))
@@ -43,96 +54,139 @@ eval2021<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-45
 
 ```
 
-Cleaning up names of variables (2021 had some different ones), limiting data to residential property only
+Cleaning up names of variables (2021 had some different ones), limiting data to residential property only, selecting for variables of interest:
 
-```{r , echo=FALSE}
-#Removing non residential property based on property codes
-# Residential Properties are coded with Ptype codes ranging from 010 to 211
+_Note:_ Codebook can be found on the City of Boston [website](https://data.boston.gov/dataset/property-assessment/resource/bac18ae6-b8fd-4cd3-a61c-c5e1a11f716c).
 
+```{r}
 eval2017res <- eval2017 %>% 
-  filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
-  mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of 2021
-  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)
-) %>% 
-  mutate(bthrm_style1 = ifelse(!is.na(r_bth_style), r_bth_style, u_bth_style)) %>% 
-  mutate(bthrm_style2 = ifelse(!is.na(r_bth_style2), r_bth_style2, u_bth_style2)) %>%
-  mutate(bthrm_style3 = ifelse(!is.na(r_bth_style3), r_bth_style3, u_bth_style3)) %>%
-  select(!starts_with("mail"), -owner, -r_bth_style, -u_bth_style, -r_bth_style2, -u_bth_style2, -r_bth_style3, -u_bth_style3) %>% 
-  mutate(cm_id = str_sub(cm_id, 1, 10)) %>% 
-  mutate(gis_id = str_sub(gis_id, 1, 10)) %>%
+  filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% # Lu refers to type of property; limiting data to residential property only
+  mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of addresses to those in 2021 dataset
+  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% # Different variables used for residential properties (r) and units (u), so this is code to unify them into one variable
+  mutate(heat_type = ifelse(!is.na(r_heat_typ), r_heat_typ, u_heat_typ)) %>% 
+  mutate(heat_type = replace(heat_type, heat_type == "C", NA), #Removing heat types not in codebook
+         heat_type = replace(heat_type, heat_type == "D", NA), 
+         heat_type = replace(heat_type, heat_type == "f", NA), 
+         heat_type = replace(heat_type, heat_type == "G", NA), 
+         heat_type = replace(heat_type, heat_type == "I", NA), 
+         heat_type = replace(heat_type, heat_type == "Y", NA)) %>% 
+  mutate(bedrooms = ifelse(!is.na(r_bdrms), r_bdrms, u_bdrms)) %>% 
+  mutate(bath_full = ifelse(!is.na(r_full_bth), r_full_bth, u_full_bth)) %>% 
+  mutate(bath_half = ifelse(!is.na(r_half_bth), r_half_bth, u_half_bth)) %>% 
+  rename(condition = r_ovrall_cnd) %>% 
+  mutate(pid = str_sub(pid, 1, 10)) %>% #String processing to reformat number IDs
   mutate(zipcode = as.character(str_sub(zipcode, 1, 5))) %>% #changing zipcode to character without dash at the end
-  mutate_at(vars(cm_id, gis_id), as.numeric) %>% 
-  mutate(year = 2017) 
+  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>%  #Keeping assessed value for the building, land, and total. Keeping address (st_name) and parcel numbers for reference (pid). Keeping tax bill amount (based on av_total and tax rate), square footage of land and living area. Keeping type of property. Keeping property-level factors: number of floors, presence of AC and heat (types), number of bedrooms, number of full and half bathrooms, overall condition, year built, year remodeled
+  mutate(year = 2017) #Creating a year variable for year of assessment
   
-
 eval2018res <- eval2018 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
-  mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of 2021
-  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)
-) %>% 
-  mutate(bthrm_style1 = ifelse(!is.na(r_bth_style), r_bth_style, u_bth_style)) %>% 
-  mutate(bthrm_style2 = ifelse(!is.na(r_bth_style2), r_bth_style2, u_bth_style2)) %>%
-  mutate(bthrm_style3 = ifelse(!is.na(r_bth_style3), r_bth_style3, u_bth_style3)) %>%
-  select(!starts_with("mail"), -owner, -r_bth_style, -u_bth_style, -r_bth_style2, -u_bth_style2, -r_bth_style3, -u_bth_style3) %>% 
-  mutate_at(vars(ptype, gross_tax, r_bdrms, s_num_bldg, cm_id, gis_id), as.numeric) %>% 
+  mutate(st_name = paste(st_name, st_name_suf)) %>%  
+  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
+  mutate(heat_type = ifelse(!is.na(r_heat_typ), r_heat_typ, u_heat_typ)) %>% 
+  mutate(heat_type = replace(heat_type, heat_type == "C", NA), 
+         heat_type = replace(heat_type, heat_type == "D", NA), 
+         heat_type = replace(heat_type, heat_type == "f", NA), 
+         heat_type = replace(heat_type, heat_type == "G", NA), 
+         heat_type = replace(heat_type, heat_type == "I", NA), 
+         heat_type = replace(heat_type, heat_type == "w", NA), 
+         heat_type = replace(heat_type, heat_type == "Y", NA)) %>% 
+  mutate(bedrooms = ifelse(!is.na(r_bdrms), r_bdrms, u_bdrms)) %>% 
+  mutate(bath_full = ifelse(!is.na(r_full_bth), r_full_bth, u_full_bth)) %>% 
+  mutate(bath_half = ifelse(!is.na(r_half_bth), r_half_bth, u_half_bth)) %>% 
+  rename(condition = r_ovrall_cnd) %>% 
+  mutate_at(vars(gross_tax, bedrooms), as.numeric) %>% # Making some numbers from character to number class to match the other years
+  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2018)
-
 
 eval2019res <- eval2019 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
   mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of 2021
-  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)
-) %>% 
-  mutate(bthrm_style1 = ifelse(!is.na(r_bth_style), r_bth_style, u_bth_style)) %>% 
-  mutate(bthrm_style2 = ifelse(!is.na(r_bth_style2), r_bth_style2, u_bth_style2)) %>%
-  mutate(bthrm_style3 = ifelse(!is.na(r_bth_style3), r_bth_style3, u_bth_style3)) %>%
-  select(!starts_with("mail"), -owner, -r_bth_style, -u_bth_style, -r_bth_style2, -u_bth_style2, -r_bth_style3, -u_bth_style3) %>% 
+  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
+  mutate(heat_type = ifelse(!is.na(r_heat_typ), r_heat_typ, u_heat_typ)) %>% 
+  mutate(bedrooms = ifelse(!is.na(r_bdrms), r_bdrms, u_bdrms)) %>% 
+  mutate(bath_full = ifelse(!is.na(r_full_bth), r_full_bth, u_full_bth)) %>% 
+  mutate(bath_half = ifelse(!is.na(r_half_bth), r_half_bth, u_half_bth)) %>% 
+  rename(condition = r_ovrall_cnd) %>% 
   mutate(zipcode = as.character(zipcode)) %>% 
   mutate(zipcode = paste0("0",zipcode)) %>% #Change zipcode to a character and add a zero to the front
+  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2019)
-
 
 eval2020res <- eval2020 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
-  mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of 2021
-  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)
-) %>% 
-  mutate(bthrm_style1 = ifelse(!is.na(r_bth_style), r_bth_style, u_bth_style)) %>% 
-  mutate(bthrm_style2 = ifelse(!is.na(r_bth_style2), r_bth_style2, u_bth_style2)) %>%
-  mutate(bthrm_style3 = ifelse(!is.na(r_bth_style3), r_bth_style3, u_bth_style3)) %>%
-  select(!starts_with("mail"), -owner, -r_bth_style, -u_bth_style, -r_bth_style2, -u_bth_style2, -r_bth_style3, -u_bth_style3) %>% 
-  mutate(r_kitch = replace(r_kitch, r_kitch == "0F - 0 Full Eat In K", 0), 
-         r_kitch = replace(r_kitch, r_kitch == "1F - 1 Full Eat In K", 1), 
-         r_kitch = replace(r_kitch, r_kitch == "2F - 2 Full Eat In K", 2),
-         r_kitch = replace(r_kitch, r_kitch == "3F - 3 Full Eat In K", 3),
-         r_kitch = replace(r_kitch, r_kitch == "4F - 4 Full Eat In K", 4),
-         r_kitch = replace(r_kitch, r_kitch == "F - Full Eat In", 1),
-         r_kitch = replace(r_kitch, r_kitch == "N - None", NA),
-         r_kitch = replace(r_kitch, r_kitch == "O - One Person", 0)) %>% 
-  mutate_at(vars(cm_id, gis_id, ptype, r_kitch), as.numeric) %>% 
+  mutate(st_name = paste(st_name, st_name_suf)) %>%  
+  mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
+  mutate(heat_type = ifelse(!is.na(r_heat_typ), r_heat_typ, u_heat_typ)) %>% 
+  mutate(bedrooms = ifelse(!is.na(r_bdrms), r_bdrms, u_bdrms)) %>% 
+  mutate(bath_full = ifelse(!is.na(r_full_bth), r_full_bth, u_full_bth)) %>% 
+  mutate(bath_half = ifelse(!is.na(r_half_bth), r_half_bth, u_half_bth)) %>% 
+  rename(condition = r_ovrall_cnd) %>% 
+  mutate(ac_type = replace(ac_type, ac_type == "C - Central AC", "C"), #Match format to other years
+         ac_type = replace(ac_type, ac_type == "D - Ductless AC", "D"),
+         ac_type = replace(ac_type, ac_type == "N - None", "N"), 
+         ac_type = replace(ac_type, ac_type == "Y - Yes", NA)) %>% 
+  mutate(heat_type = replace(heat_type, heat_type == "E - Electric", "E"),
+         heat_type = replace(heat_type, heat_type == "F - Forced Hot Air", "F"),
+         heat_type = replace(heat_type, heat_type == "N - None", "N"),
+         heat_type = replace(heat_type, heat_type == "O - Other", "O"),
+         heat_type = replace(heat_type, heat_type == "P - Heat Pump", "P"),
+         heat_type = replace(heat_type, heat_type == "S - Space Heat", "S"),
+         heat_type = replace(heat_type, heat_type == "W - Ht Water/Steam", "W")) %>% 
+  mutate(condition = replace(condition, condition == "A - Average", "A"), 
+         condition = replace(condition, condition == "E - Excellent", "E"), 
+         condition = replace(condition, condition == "F - Fair", "F"), 
+         condition = replace(condition, condition == "G - Good", "G"), 
+         condition = replace(condition, condition == "P - Poor", "P")) %>% 
+  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2020)
 
-
-#For 2021 Ptype not specified. For 2020 all Ptypes were residential N=175052
 eval2021res <- eval2021 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
-  rename(yr_remod = yr_remodel, r_bdrms = bed_rms, av_bldg = bldg_value, av_land = land_value, av_value = total_value, r_roof_typ = roof_structure) %>%
-  select(!starts_with("mail"), -owner) %>% 
-  mutate_at(vars(av_land, av_bldg, av_value, gross_tax), parse_number) %>% #Remove dollar sign and comma from these variables, make numeric
-  mutate_at(vars(cm_id, gis_id), as.numeric) %>% 
+  rename(yr_remod = yr_remodel, bedrooms = bed_rms, av_bldg = bldg_value, av_land = land_value, av_total = total_value, bath_full = full_bth, bath_half = hlf_bth, condition = overall_cond, num_floors = res_floor) %>% #Matching names of variables to those in other years datasets. 2021 is missing separate variables for residential (r) and condo units (u) in favor of joint variables
+  mutate(ac_type = replace(ac_type, ac_type == "C - Central AC", "C"), #Match format to other years
+         ac_type = replace(ac_type, ac_type == "D - Ductless AC", "D"),
+         ac_type = replace(ac_type, ac_type == "N - None", "N"), 
+         ac_type = replace(ac_type, ac_type == "Y - Yes", NA)) %>% 
+  mutate(heat_type = replace(heat_type, heat_type == "E - Electric", "E"),
+         heat_type = replace(heat_type, heat_type == "F - Forced Hot Air", "F"),
+         heat_type = replace(heat_type, heat_type == "N - None", "N"),
+         heat_type = replace(heat_type, heat_type == "O - Other", "O"),
+         heat_type = replace(heat_type, heat_type == "P - Heat Pump", "P"),
+         heat_type = replace(heat_type, heat_type == "S - Space Heat", "S"),
+         heat_type = replace(heat_type, heat_type == "W - Ht Water/Steam", "W")) %>% 
+  mutate(condition = replace(condition, condition == "A - Average", "A"), 
+         condition = replace(condition, condition == "E - Excellent", "E"), 
+         condition = replace(condition, condition == "F - Fair", "F"), 
+         condition = replace(condition, condition == "G - Good", "G"), 
+         condition = replace(condition, condition == "P - Poor", "P"), 
+         condition = replace(condition, condition == "AVG - Default - Average", "A"), 
+         condition = replace(condition, condition == "EX - Excellent", "E"), 
+         condition = replace(condition, condition == "US - Unsound", NA), 
+         condition = replace(condition, condition == "VG - Very Good", NA), 
+         condition = replace(condition, condition == "VP - Very Poor", NA)) %>% 
+  mutate_at(vars(av_land, av_bldg, av_total, gross_tax), parse_number) %>% #Remove dollar sign and comma from these variables, make numeric
+  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2021)
+
+#Check structure of all the datasets prior to joining
+str(eval2017res)
+str(eval2018res)
+str(eval2019res)
+str(eval2020res)
+str(eval2021res)
 ```
 
-Joining all City of Boston data and including neighborhoods
+Joining all City of Boston data and including neighborhoods:
 
 ```{r}
-evaljoin <- eval2017res %>% 
+eval_all <- eval2017res %>% 
   full_join(eval2018res) %>% 
   full_join(eval2019res) %>% 
   full_join(eval2020res) %>% 
   full_join(eval2021res)
 
-evalall <- evaljoin %>% 
+eval_all <- eval_all %>% 
   rename(zipid = zipcode) %>% 
   mutate(neighborhood = "Other") %>% 
   mutate(neighborhood = if_else(zipid == "02134", "Allston", neighborhood)) %>% 
@@ -159,37 +213,106 @@ evalall <- evaljoin %>%
   mutate(neighborhood = if_else(zipid %in% c("02143", "02144", "02145"), "Somerville", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid %in% c("02127", "02210"), "South Boston", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02132", "West Roxbury", neighborhood)) 
-
 # Missing neighborhoods for Milton (02186), Dedham (02026), ?error (02219)
 
 ```
 
-#### Air Quality Index (AQI)
+### Air Quality Index (AQI)
 
-Reading in AQI data
+Reading in [AQI data](https://aqicn.org/data-platform/register/):
 
+_Note:_ We had air quality data in the form of PM2.5 (Parameter name PM2.5 local conditions), which were subsequently converted to AQI by this table. Given we didn't have all the data to use the AQI calculation and derive exact numbers, we instead made AQI a factor variable with 5 levels using the following table:
+
+![](aqi.png)
+ 
 ```{r}
-#Installing AQI data by monitors foR 2021
-library(readr)
-aqi2021 <- clean_names(read_csv("annual_conc_by_monitor_2021.csv")) %>% 
-  filter(city_name == "Boston") %>% 
-  mutate(neighborhood = case_when(local_site_name == "BOSTON KENMORE SQ" ~ "Back Bay",
-                                  local_site_name == "DUDLEY SQUARE ROXBURY" ~ "Roxbury",
-                                  local_site_name == "VON HILLERN ST" ~ "Dorchester"))
+aqi_boston <- clean_names(read_csv("boston-air-quality.csv")) %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate(year = as.numeric(year(date))) %>% 
+  filter(year %in% c(2017, 2018, 2019, 2020, 2021)) %>% 
+  group_by(year) %>% 
+  summarize(pm25_mean = mean(pm25, na.rm = T),
+           aqi = case_when(pm25_mean <= 15.5 ~ 51, 
+                         pm25_mean > 15.5 & pm25_mean <= 40.5 ~ 101, 
+                         pm25_mean > 40.5 & pm25_mean <= 65.5 ~ 151,
+                         pm25_mean > 65.5 & pm25_mean <= 150.5 ~ 201, 
+                         TRUE ~ 251)) %>% 
+  mutate(neighborhood = "Downtown")
 
-# Within boston there are only three data points available. We can use that for longitudingal change. Not sure if we can use this for comparing neighbourhood. We will have to reverse geocode the point to zipcode. The three points are in Kenmore, Harrison Ave and Dorchester(near andrew square) 
+aqi_north_end <- clean_names(read_csv("boston-north end-air-quality.csv")) %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate(year = as.numeric(year(date))) %>% 
+  filter(year %in% c(2017, 2018, 2019, 2020, 2021)) %>% 
+  group_by(year) %>% 
+  summarize(pm25_mean = mean(pm25, na.rm = T),
+           aqi = case_when(pm25_mean <= 15.5 ~ 51, 
+                         pm25_mean > 15.5 & pm25_mean <= 40.5 ~ 101, 
+                         pm25_mean > 40.5 & pm25_mean <= 65.5 ~ 151,
+                         pm25_mean > 65.5 & pm25_mean <= 150.5 ~ 201, 
+                         TRUE ~ 251)) %>%
+  mutate(neighborhood = "North End West End")
+
+aqi_roxbury <-  clean_names(read_csv("boston-roxbury-air-quality.csv")) %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate(year = as.numeric(year(date))) %>% 
+  filter(year %in% c(2017, 2018, 2019, 2020, 2021)) %>% 
+  group_by(year) %>% 
+  summarize(pm25_mean = mean(pm25, na.rm = T),
+           aqi = case_when(pm25_mean <= 15.5 ~ 51, 
+                         pm25_mean > 15.5 & pm25_mean <= 40.5 ~ 101, 
+                         pm25_mean > 40.5 & pm25_mean <= 65.5 ~ 151,
+                         pm25_mean > 65.5 & pm25_mean <= 150.5 ~ 201, 
+                         TRUE ~ 251)) %>% 
+  mutate(neighborhood = "Roxbury")
+
+aqi_dorchester <-  clean_names(read_csv("boston-von hillern-air-quality.csv")) %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate(year = as.numeric(year(date))) %>% 
+  filter(year %in% c(2017, 2018, 2019, 2020, 2021)) %>% 
+  group_by(year) %>% 
+  summarize(pm25_mean = mean(pm25, na.rm = T),
+           aqi = case_when(pm25_mean <= 15.5 ~ 51, 
+                         pm25_mean > 15.5 & pm25_mean <= 40.5 ~ 101, 
+                         pm25_mean > 40.5 & pm25_mean <= 65.5 ~ 151,
+                         pm25_mean > 65.5 & pm25_mean <= 150.5 ~ 201, 
+                         TRUE ~ 251)) %>% 
+  mutate(neighborhood = "Dorchester")
+
+aqi_all <- aqi_boston %>% 
+  full_join(aqi_north_end) %>% 
+  full_join(aqi_roxbury) %>% 
+  full_join(aqi_dorchester)
 
 ```
 
-#### Area Deprivation Index (ADI)
+### Area Deprivation Index (ADI)
 
-Reading in ADI data
+Reading in ADI data from the [Neighborhood Atlas website](https://www.neighborhoodatlas.medicine.wisc.edu/).
+
+_Note:_ Codebook as follows:
+
+* TYPE: P indicates post office; U indicates unique zipcode; standard zip codes are left blank
+
+* ZIPID: The 9 digit zip code ID 
+
+* FIPS: The block group Census ID
+
+* GISJOIN: Key linkage field to the block group shapefile served by NHGIS
+
+* ADI_NATRANK: National percentile of block group ADI score. PH for suppression due to low population and/or housing, GQ for suppression due to a high group quarters population, and PH-GQ for suppression due to both types of suppression criteria.
+
+* ADI_STATERNK: State-specific decile of block group ADI score. PH for suppression due to low population and/or housing, GQ for suppression due to a high group quarters population, and PH-GQ for suppression due to both types of suppression criteria.
+
+**_Note:_ Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins.**
+
+Included neighborhoods using zipcodes based on http://archive.boston.com/news/local/articles/2007/04/15/sixfigurezipcodes_city/.
 
 ```{r}
-#Reading ADI data
-#Available in 2015 and 2019 and downladed for MA. Need to filter based on the Zipcodes that we are looking at. 
-
-# Added neighborhoods using zipcodes based on http://archive.boston.com/news/local/articles/2007/04/15/sixfigurezipcodes_city/
+#Defining a function for mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
 
 adi2019 <- clean_names(read.delim('MA_2019_ADI_9 Digit Zip Code_v3.1.txt', sep = ",")) %>% 
   mutate(zipid = str_sub(zipid, 2, 6)) %>% 
@@ -219,10 +342,14 @@ adi2019 <- clean_names(read.delim('MA_2019_ADI_9 Digit Zip Code_v3.1.txt', sep =
   mutate(neighborhood = if_else(zipid %in% c("02127", "02210"), "South Boston", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02132", "West Roxbury", neighborhood)) %>% 
   filter(neighborhood != "Other") %>% 
+  filter(adi_staternk %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9")) %>% 
+  mutate(adi_staternk = as.numeric(adi_staternk)) %>% # Removing NAs and converting to numeric
+  group_by(neighborhood) %>%
+  summarize(adi_mode = getmode(adi_staternk)) %>%  
   mutate(year = 2019)
   
 
-adi2015 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep = ",")) %>% 
+adi2017 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep = ",")) %>% 
   mutate(zipid = str_sub(zipid, 2, 6)) %>% 
   mutate(neighborhood = "Other") %>% 
   mutate(neighborhood = if_else(zipid == "02134", "Allston", neighborhood)) %>% 
@@ -250,12 +377,17 @@ adi2015 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep =
   mutate(neighborhood = if_else(zipid %in% c("02127", "02210"), "South Boston", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02132", "West Roxbury", neighborhood)) %>% 
   filter(neighborhood != "Other") %>% 
-  mutate(year = 2015)
+  filter(adi_staternk %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9")) %>% 
+  mutate(adi_staternk = as.numeric(adi_staternk)) %>% # Removing NAs and converting to numeric
+  group_by(neighborhood) %>%
+  summarize(adi_mode = getmode(adi_staternk)) %>% 
+  mutate(year = 2017)
 
-adiall <- full_join(adi2015, adi2019)
+
+adi_all <- full_join(adi2017, adi2019)
 ```
 
-#### Redfin data 
+### Redfin data 
 
 Read html from Redfin for aggregrate housing sale trends in different Boston neighborhoods. Data from January 2020.
 
@@ -626,12 +758,14 @@ Data scraped from Redfin of listed recently sold properties stratified by neighb
 df.2021sales <- clean_names(read_csv("Redfin_2021_SalesData.csv"))
 ```
 
-#### Joining all data for analysis
+### Joining all data for analysis
 
 ```{r}
-full_long <- evalall %>% 
-  left_join(aqi2021, by = c("year", "neighborhood")) %>%  #joining by year, neighborhood
-  left_join(adiall, by = c("year", "neighborhood"))
-  
+full_long <- eval_all %>% 
+  left_join(aqi_all) %>%  #joining by year, neighborhood
+  left_join(adi_all) %>% 
+  full_join(df.bos.housing)
+
 ```
+
 
