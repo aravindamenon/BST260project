@@ -1,18 +1,55 @@
 ---
 title: "Cumulative analysis"
-author: "Bina Choi"
-date: "12/01/2021"
+author: "Zsu-Zsu Chen, Bina Choi, George Goshua, Aravind Menon"
+date: "12/12/2021"
 output: 
   html_document:
     toc: yes
     
 ---
-
-Suppress messages for this markdown
+Suppress messages and warnings for this markdown
 
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
+
+## Overview and Motivation
+
+Increases in real estate prices were seen across the country over the course of the COVID-19 pandemic, with the Case-Shiller U.S. National Home Price Index showing an [18.6% growth in housing prices](https://www.whitehouse.gov/cea/blog/2021/09/09/housing-prices-and-inflation/) over the course of September 2020 to 2021. Some factors contributing to this trend included both COVID-related and unrelated factors, such as: lower lending interest rates, [changes in migration from urban to suburban areas or smaller cities given an increase in remote working](https://www.nber.org/papers/w26948), [millennials aging into homeownership](https://www.vox.com/22264268/covid-19-housing-insecurity-housing-prices-mortgage-rates-pandemic-zoning-supply-demand), [an increase in second-home buying](https://www.federalreserve.gov/econres/notes/feds-notes/housing-market-tightness-during-covid-19-increased-demand-or-reduced-supply-20210708.htm), and [a variety of other factors](https://www.cnbc.com/2021/03/12/housing-market-covid-one-year-anniversary.html). 
+
+We wanted to examine how the real estate prices in and around Boston were affected during the last four years. Given that Boston is a huge healthcare hub with some of the leading hospitals, pharmaceutical, and biotech companies, its housing market is more likely to be impacted by COVID-19 trends than other cities. Thus, it is a good model city to study the pandemic-related factors affecting housing inflation. Furthermore, given that Boston has the 4th most number of colleges in the US, trends in housing markets during the COVID-19 pandemic were likely to be affected by the 2021 influx of college and graduate students who in 2020 were learning remotely. 
+
+In addition to the effect of the pandemic, we also wanted to explore other factors that may have affected the property prices. We want to contrast how price inflation varies according to neighbourhoods, their area deprivation index, school rating, air quality index (AQI), proximity to medical centers, etc. We believe that this would allow us to see the local impact of property price inflation that has been happening across the country. 
+
+## Initial questions
+
+Our intial plan was the following: 
+
+* Objective 1: To assess the actual house sale price trend in real estate units from 2017 to 2021, with special attention to the years of the COVID-19 pandemic (2020-2021) and compare this to property value assessment data available from the Analyze Boston website (https://data.boston.gov/).  We plan to look at the actual selling price of various units from different Boston neighborhoods through a real estate database (i.e., Zillow, Redfin, or Trulia) and compare it to the City of Boston home assessment prices to see the divergence in the values that could be attributable to property price inflation.
+
+* Objective 2: Utilizing regression models based on property data from pre-pandemic (2017-2019) and pandemic (2020-2021) years, we will predict the possible change in housing prices for different metropolitan and suburban regions of Boston in 2022 given 1) there is no further COVID-19 surger and 2) there is another COVID-19 surge.
+
+* Objective 3: To assess for factors that affect inflation of property price beyond COVID-19, including sociodemographic (i.e., neighbourhood, ADI https://www.neighborhoodatlas.medicine.wisc.edu/ ), facilities (i.e., proximity to medical center https://data.boston.gov/dataset/hospital-locations, school district ratings https://www.niche.com/k12/search/best-school-districts/t/boston-suffolk-ma/) and environmental data (i.e., air quality index).
+
+## Data sources
+
+1. The primary data regarding the actual value of the property prices was be obtained through the [city of Boston property assessment database](https://data.boston.gov/dataset/property-assessment) for the years of 2017-2021.
+
+2. Real world property closing price data were  obtained through web scraping from publicly available property listing websites Redfin and Boston Magazine.
+
+3. We opted to include a few additional factors contributing to housing prices. The Air Quality Index (AQI) scores were obtained from [this website](https://aqicn.org/data-platform/register/). The Area Deprivation Index (ADI), which are scores of disadvantaged neighborhoods that can have important effects on healthcare outcomes, were obtained from [this website](https://www.neighborhoodatlas.medicine.wisc.edu/).
+
+## Adjusted question
+
+After discussion with our TA, Rolando, and the availability of the model, we opted to slightly adjust our question to the following:
+
+Can we use data from 2017-2019 to predict housing prices in 2020? 
+
+* Step 1: Build a training and test set from 2017-2019
+
+* Step 2: Optimize model
+
+* Step 3: Apply to predict prices in 2020-2021.
 
 ## Preparing data
 
@@ -35,11 +72,16 @@ library(stringi)
 library(finalfit)
 library(skimr)
 library(gtsummary)
+library(caret)
+library(rpart)
+library(rpart.plot)
 ```
 
 ### Boston government website data
 
-Reading in data from the [Boston.gov website](https://data.boston.gov/dataset/property-assessment) on property financial assessment for years 2017 to 2021:
+Reading in data from the [Analyze Boston website](https://data.boston.gov/dataset/property-assessment) on property financial assessment for years 2017 to 2021:
+
+_Note:_ Codebook can be found on the website, or [here](https://data.boston.gov/dataset/property-assessment/resource/bac18ae6-b8fd-4cd3-a61c-c5e1a11f716c).
 
 ```{r}
 eval2017<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/062fc6fa-b5ff-4270-86cf-202225e40858/download/property-assessment-fy2017.csv"))
@@ -53,10 +95,38 @@ eval2020<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-45
 eval2021<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/c4b7331e-e213-45a5-adda-052e4dd31d41/download/data2021-full.csv"))
 
 ```
+Initial overview of the datasets included the function skim() to evaluate for missingness. We are not including that code here as it delays the RMD knitting.
 
-Cleaning up names of variables (2021 had some different ones), limiting data to residential property only, selecting for variables of interest:
+```{r}
+str(eval2017)
+str(eval2018)
+str(eval2019)
+str(eval2020)
+str(eval2021)
+```
 
-_Note:_ Codebook can be found on the City of Boston [website](https://data.boston.gov/dataset/property-assessment/resource/bac18ae6-b8fd-4cd3-a61c-c5e1a11f716c).
+We filtered out the properties that were only residential ("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC", which stand for "Residential 7 or more units", "Residential condominium unit", "Condominium main", "Residential 1-family," "2-family", "3-family", "4- or more family", and "Mixed use (residential and commercial)").
+
+The data was not always formatted the same way per year, so the data wrangling allowed us to clean up names and classes of variables, limit data to residential property only, and select for variables of interest. Additionally, data from the same variable (ie. number of bedrooms) was often placed in two different columns depending on whether they were a residential unit ("r") or a condo unit ("u"), so they were combined into a single variable.
+
+We chose to use select for the following variables given that they are often the variables of greatest importance when initially choosing a home: 
+
+* Zipcode, neighborhood, street address
+
+* Assessed value (land, building, total) -- as this plays into the cost of the home
+
+* Tax -- another proxy for the value of the home
+
+* Square feet of land/property
+
+* Number of bedrooms and bathrooms
+
+* Year built/remodeled 
+
+* Additional variables were included for consideration: overall condition, AC and heating type, number of floors.
+
+* Other variables were available but had a large amount of missingness or seemed trivial compared to other variables in determining property value.
+
 
 ```{r}
 eval2017res <- eval2017 %>% 
@@ -76,7 +146,7 @@ eval2017res <- eval2017 %>%
   rename(condition = r_ovrall_cnd) %>% 
   mutate(pid = str_sub(pid, 1, 10)) %>% #String processing to reformat number IDs
   mutate(zipcode = as.character(str_sub(zipcode, 1, 5))) %>% #changing zipcode to character without dash at the end
-  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>%  #Keeping assessed value for the building, land, and total. Keeping address (st_name) and parcel numbers for reference (pid). Keeping tax bill amount (based on av_total and tax rate), square footage of land and living area. Keeping type of property. Keeping property-level factors: number of floors, presence of AC and heat (types), number of bedrooms, number of full and half bathrooms, overall condition, year built, year remodeled
+  select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>%  #Keeping assessed value for the building, land, and total. Keeping address (st_name) and parcel numbers for reference (pid). Keeping tax bill amount (based on av_total and tax rate), square footage of land and living area. Keeping type of property. Keeping property-level factors: number of floors, presence of AC and heat (types), number of bedrooms, number of full and half bathrooms, overall condition, year built, year remodeled
   mutate(year = 2017) #Creating a year variable for year of assessment
   
 eval2018res <- eval2018 %>% 
@@ -96,7 +166,7 @@ eval2018res <- eval2018 %>%
   mutate(bath_half = ifelse(!is.na(r_half_bth), r_half_bth, u_half_bth)) %>% 
   rename(condition = r_ovrall_cnd) %>% 
   mutate_at(vars(gross_tax, bedrooms), as.numeric) %>% # Making some numbers from character to number class to match the other years
-  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
+  select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2018)
 
 eval2019res <- eval2019 %>% 
@@ -110,7 +180,7 @@ eval2019res <- eval2019 %>%
   rename(condition = r_ovrall_cnd) %>% 
   mutate(zipcode = as.character(zipcode)) %>% 
   mutate(zipcode = paste0("0",zipcode)) %>% #Change zipcode to a character and add a zero to the front
-  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
+  select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2019)
 
 eval2020res <- eval2020 %>% 
@@ -138,7 +208,7 @@ eval2020res <- eval2020 %>%
          condition = replace(condition, condition == "F - Fair", "F"), 
          condition = replace(condition, condition == "G - Good", "G"), 
          condition = replace(condition, condition == "P - Poor", "P")) %>% 
-  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
+  select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2020)
 
 eval2021res <- eval2021 %>% 
@@ -166,10 +236,13 @@ eval2021res <- eval2021 %>%
          condition = replace(condition, condition == "VG - Very Good", NA), 
          condition = replace(condition, condition == "VP - Very Poor", NA)) %>% 
   mutate_at(vars(av_land, av_bldg, av_total, gross_tax), parse_number) %>% #Remove dollar sign and comma from these variables, make numeric
-  select(zipcode, av_bldg, av_land, av_total, st_name, pid, gross_tax, land_sf, living_area, lu, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
+  select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2021)
+```
 
-#Check structure of all the datasets prior to joining
+Check the structures of all the datasets prior to joining:
+
+```{r}
 str(eval2017res)
 str(eval2018res)
 str(eval2019res)
@@ -177,7 +250,7 @@ str(eval2020res)
 str(eval2021res)
 ```
 
-Joining all City of Boston data and including neighborhoods:
+Joining all City of Boston data, and adding neighborhoods based on the zip codes, using [this reference](http://archive.boston.com/news/local/articles/2007/04/15/sixfigurezipcodes_city/) and Google maps:
 
 ```{r}
 eval_all <- eval2017res %>% 
@@ -221,7 +294,7 @@ eval_all <- eval_all %>%
 
 Reading in [AQI data](https://aqicn.org/data-platform/register/):
 
-_Note:_ We had air quality data in the form of PM2.5 (Parameter name PM2.5 local conditions), which were subsequently converted to AQI by this table. Given we didn't have all the data to use the AQI calculation and derive exact numbers, we instead made AQI a factor variable with 5 levels using the following table:
+_Note:_ We had air quality data in the form of PM2.5 (Parameter name PM2.5 local conditions), which were subsequently converted to AQI by this table. Given we didn't have all the data to use the AQI calculation and derive exact numbers, we instead made AQI a factor variable with 5 levels using the following table ([reference 1](https://www.epa.gov/sites/default/files/2014-05/documents/zell-aqi.pdf), [reference 2](https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf)):
 
 ![](aqi.png)
  
@@ -303,9 +376,7 @@ _Note:_ Codebook as follows:
 
 * ADI_STATERNK: State-specific decile of block group ADI score. PH for suppression due to low population and/or housing, GQ for suppression due to a high group quarters population, and PH-GQ for suppression due to both types of suppression criteria.
 
-**_Note:_ Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins.**
-
-Included neighborhoods using zipcodes based on http://archive.boston.com/news/local/articles/2007/04/15/sixfigurezipcodes_city/.
+**_Note:_ Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins; thus 2015 was used as a proxy for 2017.**
 
 ```{r}
 #Defining a function for mode
@@ -519,7 +590,7 @@ rownames<-c("Boston",
 "Mattapan",
 "Brookline",
 "Cambridge",
-"Sommerville")
+"Somerville")
 
 funoutput.boston<-lapply(bos.list, redfin.fun)
 df.boston <- do.call(rbind, funoutput.boston) %>% 
@@ -715,16 +786,17 @@ head(l_house_twenty)
 ```
 
 Combining all of the dataframes for 2015, 2016, 2017, 2018, 2019, 2020.
+
 Datatable information: 
 This table includes aggregate data from all neighborhoods of Boston. The 2015-2019 data is from [Boston Magazine](https://www.bostonmagazine.com/best-places-to-live-2017-condos/) and the associated pages of each year. The 2020 data is from [Redfin](https://www.redfin.com/city/1826/MA/Boston/housing-market) and the associated individual neighborhood pages.
 
 Description of data within columns:
-* Neighborhood - factor w 27 levels; includes all neighborhoods of Boston (Allston, Back Bay, Bay Village South End, Beacon Hill, Brighton, Charlestown, Chestnut Hill, Chinatown Leather District, Dorchester, Downtown, East Boston, Fenway, Hyde Park, Jamaica Plain, Mattapan, North End West End, Roslindale, Roxbury, Seaport District, South Boston, West Roxbury, Citywide). __Of note__, data is only available for Seaport District and Downtown, and Chestnut Hill in _Redfin_. Data is only available for Citywide in _Boston Magazine_. Brookline, Cambridge, and Sommerville were included as neighborhoods of interest althought they are not considered to be in Boston. The row for Boston is a composite measurement that is included in both Redfin and some of the Boston Magazine data.
+* Neighborhood - factor w 27 levels; includes all neighborhoods of Boston (Allston, Back Bay, Bay Village South End, Beacon Hill, Brighton, Charlestown, Chestnut Hill, Chinatown Leather District, Dorchester, Downtown, East Boston, Fenway, Hyde Park, Jamaica Plain, Mattapan, North End West End, Roslindale, Roxbury, Seaport District, South Boston, West Roxbury, Citywide). __Of note__, data is only available for Seaport District and Downtown, and Chestnut Hill in _Redfin_. Data is only available for Citywide in _Boston Magazine_. Brookline, Cambridge, and Somerville were included as neighborhoods of interest althought they are not considered to be in Boston. The row for Boston is a composite measurement that is included in both Redfin and some of the Boston Magazine data.
 * Year - number
 * Avg Sale Price - number; median price was used for _Boston Magazine_, unclear which measurement was used to calculate the average sale price listed by _Redfin_.
 * Price Per SqFt - number; only available for Redfin data.
 * Number Sold - number; units sold in that neighborhood, missing from _Boston Magazine_ 2017 data.
-* Type - character; _Boston Magazine_ data was stratified by condo verses single family housing units. In the 2015 and 2016 data both condo and single family housing data was available for the neighborhoods of Boston and Brookline, Cambridge, Sommerville. Subsequent years condo data is only availble for the neighborhoods of Boston while housing data is only for Brookline, Cambridge, Sommerville, and the composite Boston category.
+* Type - character; _Boston Magazine_ data was stratified by condo verses single family housing units. In the 2015 and 2016 data both condo and single family housing data was available for the neighborhoods of Boston and Brookline, Cambridge, Somerville. Subsequent years condo data is only availble for the neighborhoods of Boston while housing data is only for Brookline, Cambridge, Somerville, and the composite Boston category.
 
 
 ```{r}
@@ -734,6 +806,18 @@ view(df.bos.housing)
 dim(df.bos.housing)
 
 df.bos.housing <- clean_names(df.bos.housing)
+```
+
+Since we don't have City of Boston data for the years of 2015 and 2016, we opted to use them as a proxy for 2017. Thus, we changed the years to 2017 and took the mean average sale price after grouping by neighborhood, type, and year.
+
+```{r}
+df.bos.housing <- df.bos.housing %>% 
+  mutate(year = replace(year, year == 2015, 2017), 
+         year = replace(year, year == 2016, 2017)) %>% 
+  group_by(neighborhood, type, year) %>% 
+  mutate(avg_sale_price = mean(avg_sale_price)) %>% 
+  ungroup()
+  
 ```
 
 2021 housing sales data scraped from Redfin.
@@ -747,7 +831,7 @@ Data scraped from Redfin of listed recently sold properties stratified by neighb
 * Sqr.Ft - square footage
 * Bedrooms - no. bedrooms (NA listed for lofts)
 * Baths - no. baths
-* Neighborhood
+* Neighborhood - further filtered by the only the neighborhoods available in the other datasets.
 * Walk.Score - numeric score out of 100
 * School.District - 6 schools are listed given Boston lottery system
 
@@ -755,10 +839,42 @@ Data scraped from Redfin of listed recently sold properties stratified by neighb
 
 
 ```{r}
-df.2021sales <- clean_names(read_csv("Redfin_2021_SalesData.csv"))
+df.2021sales <- clean_names(read_csv("Redfin_2021_SalesData.csv")) %>% 
+  filter(neighborhood %in% c("Allston",
+                             "Back Bay",
+                             "Bay Village South End",
+                             "Beacon Hill", 
+                             "Boston",
+                             "Brighton",
+                             "Brookline",
+                             "Cambridge", 
+                             "Charlestown",
+                             "Chestnut Hill",
+                             "Chinatown Leather District",
+                             "Citywide",
+                             "Dorchester",
+                             "Downtown",
+                             "East Boston",
+                             "Fenway",
+                             "Hyde Park",
+                             "Jamaica Plain",
+                             "Mattapan", 
+                             "North End West End",
+                             "Roslindale",
+                             "Roxbury",
+                             "Seaport District",
+                             "Somerville",
+                             "South Boston", 
+                             "West Roxbury")) %>% 
+  mutate(year = 2021) %>% 
+  rename(avg_sale_price = sale_price)
+
+df.all.sales <- full_join(df.bos.housing, df.2021sales)
 ```
 
 ### Joining all data for analysis
+
+Additionally, neighborhoods listed under [this article](https://www.propertyshark.com/Real-Estate-Reports/2017/11/21/bostons-top-5-fastest-rising-neighborhoods-2017/) from 2017 were marked as "fast growing." 
 
 ```{r}
 # Dataset of all the factors affecting prices
@@ -768,8 +884,101 @@ factors_long <- eval_all %>%
 
 # Dataset of all the factors plus sold prices from Redfin and Boston Magazine
 full_long <- factors_long %>% 
-  full_join(df.bos.housing)
+  full_join(df.all.sales) %>% 
+  filter(neighborhood != "Other") %>% 
+  mutate(neighborhood = as.factor(neighborhood)) %>% 
+  mutate(fast_growing = ifelse(neighborhood %in% c("Bay Village South End", "Downtown", "Chinatown Leather District", "Beacon Hill", "East Boston", "Roxbury"), "Fast Growing", "Slow Growing"))
+  
 
+# Dataset of years 2017-2019
+pre_long <- full_long %>% 
+  filter(year %in% c(2017, 2018, 2019))
+
+# Dataset of years 2020-2021
+post_long <- full_long %>% 
+  filter(year %in% c(2020, 2021))
+
+str(full_long)
 ```
 
+## Initial visualization
+
+```{r}
+full_long %>% 
+  filter(!is.na(avg_sale_price)) %>% 
+  ggplot(aes(x = year, y = avg_sale_price, color = neighborhood)) +
+  geom_line() + 
+  scale_y_log10() 
+
+full_long %>% 
+  filter(!is.na(avg_sale_price)) %>% 
+  ggplot(aes(x = year, y = avg_sale_price, color = fast_growing)) +
+  geom_line() + 
+  scale_y_log10()
+  
+```
+
+## Initial machine learning model
+
+Can we use data from 2017-2019 to predict housing prices in 2020? 
+
+Step 1: Build a training and test set from 2017-2019
+Step 2: Optimize model
+Step 3: Apply to predict prices in 2020-2021.
+
+```{r}
+pre_complete <- pre_long %>% 
+  filter(!is.na(avg_sale_price))
+post_complete <- post_long %>% 
+  filter(!is.na(avg_sale_price))
+```
+
+```{r}
+# Decision tree using data from 2017-2019 split into training and test sets
+
+# Stratify the sample into training and testing data
+
+set.seed(1)
+
+stratified <- createDataPartition(pre_complete$avg_sale_price, 0.7, list = F, times = 1)
+train_set <- pre_complete[stratified, ]
+test_set <- pre_complete[-stratified, ]
+
+dim(train_set)
+dim(test_set)
+
+# Decision tree on test set from 2017 - 2019
+
+tree_fit <- train_set %>% 
+  rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms + bath_full + yr_remod + neighborhood + aqi + adi_mode, data = ., maxdepth = 5, minbucket = 1)
+
+tree_fit
+rpart.plot(tree_fit, type = 3, digits = 3, fallen.leaves = T)
+
+tree_pred <- predict(tree_fit, newdata = test_set)
+
+# Mean absolute error
+mean(abs(tree_pred - test_set$avg_sale_price))
+
+# Mean square error
+mean((tree_pred - test_set$avg_sale_price)^2)
+```
+
+```{r}
+# Decision tree using training set as all data from 2017-2019 and test set as all data from 2020
+
+tree_fit_2 <- pre_complete %>% 
+  rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms + bath_full + yr_remod + neighborhood + aqi + adi_mode, data = ., maxdepth = 5, minbucket = 1)
+
+tree_fit_2
+rpart.plot(tree_fit_2, type = 3, digits = 3, fallen.leaves = T)
+
+tree_pred_2 <- predict(tree_fit_2, newdata = post_complete)
+
+# Mean absolute error
+mean(abs(tree_pred_2 - post_complete$avg_sale_price))
+
+# Mean square error
+mean((tree_pred_2 - post_complete$avg_sale_price)^2)
+```
 
