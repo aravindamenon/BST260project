@@ -888,7 +888,6 @@ full_long <- factors_long %>%
   filter(neighborhood != "Other") %>% 
   mutate(neighborhood = as.factor(neighborhood)) %>% 
   mutate(fast_growing = ifelse(neighborhood %in% c("Bay Village South End", "Downtown", "Chinatown Leather District", "Beacon Hill", "East Boston", "Roxbury"), "Fast Growing", "Slow Growing"))
-  
 
 # Dataset of years 2017-2019
 pre_long <- full_long %>% 
@@ -982,3 +981,21 @@ mean(abs(tree_pred_2 - post_complete$avg_sale_price))
 mean((tree_pred_2 - post_complete$avg_sale_price)^2)
 ```
 
+```{r}
+summary(full_long) #observe that 597K out of 900K outcome data missing
+summary(full_long$neighborhood) #see several low end outliers
+# Attempt at grouped sale prices with existing dataframe (observe NAs)
+sale_attempt <- full_long %>% group_by(neighborhood, year, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
+
+#Different data joining to address NAs in 2020 and 2021
+full_long_new <- left_join(df.all.sales, factors_long, by = "neighborhood")
+summary(full_long_new) #see 149K missing out of 9mil+
+p <- full_long_new %>% mutate(neighborhood = as.factor(neighborhood))
+summary(p$neighborhood) #confirming several lowr end outliers as before 
+sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
+sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
+
+summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
+summary(full_long_new)
+
+```
