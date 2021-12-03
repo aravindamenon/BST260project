@@ -995,7 +995,16 @@ summary(p$neighborhood) #confirming several lowr end outliers as before
 sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
 
-summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
-summary(full_long_new)
+#summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
+#summary(full_long_new)
 
+full_long_new <- full_long_new %>% mutate(yr_remod=na_if(yr_remod,0))
+full_long_new <- full_long_new %>% filter(neighborhood !="Downtown")
+full_long_new <- full_long_new %>% filter(neighborhood !="Bay Village South End")
+full_long_new <- full_long_new %>% filter(neighborhood !="Citywide")
+full_long_new <- full_long_new %>% filter(neighborhood !="Somerville")
+full_long_new <- full_long_new %>% filter(neighborhood !="Cambridge")
+full_long_new <- full_long_new %>% mutate(yr_built=na_if(yr_built,0))
+p <- full_long_new %>% mutate(neighborhood = as.factor(neighborhood))
+summary(p$neighborhood)
 ```
