@@ -1008,6 +1008,9 @@ summary(full_long_new$neighborhood) #confirming several lower end outliers as be
 sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
 
+#Removing two additional data frames that we no longer need because of the join above
+rm(df.all.sales, factors_long)
+
 #summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
 #summary(full_long_new)
 
