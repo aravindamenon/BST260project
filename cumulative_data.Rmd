@@ -1036,12 +1036,14 @@ full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID
 #full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2021', 1, 0)
 #summary(full_long_new$avg_sale_price)
 full_long_new$SALE <- 0
-full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price >"594000", "1"))
-full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price <"594001", "0"))
+full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price >"613000", "1"))
+full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price <"613001", "0"))
 full_long_new <- full_long_new %>% mutate(SALE = as.factor(SALE))
 full_long_new <- full_long_new %>% mutate(COVID19 = as.factor(COVID19))
 full_long_new <- full_long_new %>% mutate(type = as.factor(type))
-#summary(full_long_new$type)
+#summary(full_long_new)
+#class(full_long_new$type)
+#summary(full_long_new$avg_sale_price)
 sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
 #Graphing home sale prices by Boston Neighborhood
@@ -1068,50 +1070,23 @@ full_long_new%>%
 #Observation: There does not appear to be any discernible shift in property assessment values, regardless of the pandemic. 
 
 #Since above we had introduced a new (binary) variable 'COVID19' (indicating presence = 1 or absence = 0 of COVID19 that depends on year with 2020 and onward being a '1'), a multiple linear regression looking at neighborhood (as factor) and COVID19 (as binary) will provide an *overall* estimate for the price change during the pandemic in a home's sale price.
-COVID <- lm(avg_sale_price ~ neighborhood+COVID19, data=full_long_new)
-summary(COVID)
-#Observation: The context of COVID appears to increase a home's sale price by $178,648 as compared to pre-COVID times, neighborhood being held constant. This said, we should examine the years (each of 2020 and 2021) for a more nuanced picture as below.
+COVID_full <- lm(avg_sale_price ~ neighborhood+COVID19, data=full_long_new)
+summary(COVID_full)
+confint(COVID_full)
+set.seed(999)
+rando <- sample_n(full_long_new, 1000000) #taking a random 10% sampling of our data (without replacement) for analysis
+COVID_random <- lm(avg_sale_price ~ neighborhood+COVID19, data=rando)
+summary(COVID_random)
+confint(COVID_random)
 
-#To allow for a bit finer resolution and taking into account the visualizations above that appear to show a return back down in homes' sale prices in 2021, we regress neighborhood and year as factors for the outcome of average sale price of a home. This will allow for rough estimation of the factor of 2020, as compared to 2017, and dthen of 2021 as compared to 2017 (and indirectly to 2020), assuming the same neighborhood. 
-inflation <- lm(avg_sale_price ~ neighborhood+as.factor(year.x), data=full_long_new)
-summary(inflation)
-#Observation: we see that there is a clear spike in a home's average sale price in 2020 with an effect estimate of +$1,829,949 USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 with an effect estimate of -$219,844 USD as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike. 
+#Observation: The context of COVID appears to increase a home's sale price as compared to pre-COVID times, neighborhood being held constant. We see this in the full data set with home sale price increased $1,446,869 in the context of COVID with 95% confidence interval [1,435,742, 1,457,996], holding neighborhood constant. In the ~10% sample (with wider 95% CI) the effect estimate is an increased home sale price of $1,416,801 increase [1,382,658, 1,4590,943], holding neighborhood constant. We note here that the 10% sample (given 1 million+ data points) is a reasonable proxy for the full data frame. We will utilize the random sample to fit a logistic regression model with a training and test set later. For now, we should examine the years (each of 2020 and 2021) for a more nuanced picture as below.
 
-#class(full_long_new$avg_sale_price)
-#mod.av_total <- summary(lm(avg_sale_price ~ av_total, data=full_long_new))
-#print(mod.av_total)
-#mod.gross_tax <- summary(lm(avg_sale_price ~ gross_tax, data=full_long_new))
-#print(mod.gross_tax)
-#mod.walk_score <- summary(lm(avg_sale_price ~ walk_score, data=full_long_new))
-#print(mod.walk_score)
-#mod.pm25_mean <- summary(lm(avg_sale_price ~ pm25_mean, data=full_long_new))
-#print(mod.pm25_mean)
-#mod.aqi <- summary(lm(avg_sale_price ~ aqi, data=full_long_new))
-#print(mod.aqi)
-#mod.adi_mode <- summary(lm(avg_sale_price ~ adi_mode, data=full_long_new))
-#print(mod.adi_mode)
-#mod.yr_built <- summary(lm(avg_sale_price ~ yr_built, data=full_long_new))
-#print(mod.yr_built)
-#summary(full_long_new$heat_type)
-#mod.heat <- summary(lm(avg_sale_price ~ heat_type, data=full_long_new))
-#print(mod.heat)
-#summary(full_long_new$ac_type)
-#mod.ac <- summary(lm(avg_sale_price ~ ac_type, data=full_long_new))
-#print(mod.ac)
-#summary(full_long_new$condition)
-#mod.condition <- summary(lm(avg_sale_price ~ condition, data=full_long_new))
-#print(mod.condition)
-#summary(full_long_new$school_district)
-#mod.school <- summary(lm(avg_sale_price ~ school_district, data=full_long_new))
-#print(mod.school)
-#mod.pm25_walk_score <- summary(lm(avg_sale_price ~ walk_score + pm25_mean, data=full_long_new))
-#print(mod.pm25_walk_score)
-#mod.pm25_walk_score_aqi <- summary(lm(avg_sale_price ~ walk_score + pm25_mean + aqi, data=full_long_new))
-#print(mod.pm25_walk_score_aqi)
-#mod.pm25_walk_score_adi <- summary(lm(avg_sale_price ~ walk_score + pm25_mean + adi_mode, data=full_long_new))
-#print(mod.pm25_walk_score_adi)
-#mod.pm25_walk_score_adi_school <- lm(avg_sale_price ~ COVID19, data=full_long_new)
-#summary(mod.pm25_walk_score_adi_school)
+#To allow for a bit finer resolution and taking into account the visualizations above that appear to show a return back down in homes' sale prices in 2021, we regress neighborhood and year as factors for the outcome of average sale price of a home. This will allow for rough estimation of the factor of 2020, as compared to 2017, and then of 2021 as compared to 2017 (and indirectly to 2020), assuming the same neighborhood. We do this with the ~10% data sample.
+inflation_random <- lm(avg_sale_price ~ neighborhood+as.factor(year.x), data=rando)
+summary(inflation_random)
+confint(inflation_random)
+
+#Observation: we see that there is a clear spike in a home's average sale price in 2020 with an effect estimate of an increase in the millions USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates (and hence why we don't fixate on the exact effect estimate) but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike. 
 
 library(splitstackshape)
 library(caret)
@@ -1120,28 +1095,32 @@ library(pROC)
 library(rpart)
 library(randomForest)
 
-# Dataset of years 2017-2019 and then filter out NA
-#pre_long_new <- full_long_new %>% 
- # filter(year.x %in% c(2017, 2018, 2019))
-#pre_complete_new <- pre_long_new %>% 
- # filter(!is.na(SALE)) %>% filter(!is.na(avg_sale_price)) %>% filter(!is.na(num_floors))
-#summary(pre_complete_new)
-# Dataset of years 2020-2021 and then filter out NA
-#post_long_new <- full_long_new %>% 
- # filter(year.x %in% c(2020, 2021))
-#post_complete_new <- post_long_new %>% 
- # filter(!is.na(SALE)) %>% filter(!is.na(avg_sale_price)) %>% filter(!is.na(num_floors))
-#summary(post_complete_new)
-#dim(post_complete_new)
+#We move on to take advantage of our recently created binary variable 'SALE', which is coded SALE = 1 for sale prices above the median and SALE = 0 for sale prices including and below the median. We will also take advantage of our 
+index_train<- createDataPartition(y = rando$SALE, times =1, p=0.7, list = FALSE)
+train_set <- slice(rando, index_train)
+test_set <- slice(rando, -index_train)
+glm_fit <- train_set %>% mutate(y=as.numeric(SALE =="1")) %>% glm(SALE~neighborhood+as.factor(year.x), data=., family="binomial")
+p_hat_logit <- predict(glm_fit, newdata = test_set, type="response")
+y_hat_logit <- ifelse(p_hat_logit > 0.5, "1", "0")
+confusionMatrix(data = as.factor(y_hat_logit), reference = test_set$SALE)
+#Observation: given 1 million observations, we had the luxury of using 70% of our data to train and 30% to test for the outcome of high vs low expected sale price. The overall accuracy is 76% with a sensitivity of 94% and specificity of 42%. 
 
-#x <- createDataPartition(pre_complete_new$SALE, 0.5, list = F, times =1)
-#train_set <- pre_complete_new[x, ]
-#test_set <- pre_complete_new[-x,]
-#summary(test_set)
+#summary(full_long_new)
+# Dataset of years 2017-2019
+#prepandemic_long_new <- full_long_new %>% filter(year.x %in% c(2017, 2018, 2019))
+#prepandemic <- lm(avg_sale_price ~ neighborhood+as.factor(year.x) + type, data=prepandemic_long_new)
+#summary(prepandemic)
+#confint(prepandemic)
 
-#set.seed(1)
-#qda<- qda(SALE ~ num_floors, data = train_set)
-#p_hat_qda <-predict(qda, newdata = test_set)$posterior[,2]
-#y_hat_qda <-factor(ifelse(p_hat_qda>0.5, 1,0))
-#confusionMatrix(data=y_hat_qda, reference = test_set$SALE, positive ="1")
+#Dataset of year 2020
+#pandemic_long_new <- full_long_new %>% filter(year.x %in% c(2020))
+#pandemic <- lm(avg_sale_price ~ neighborhood, data=pandemic_long_new)
+#summary(pandemic)
+#confint(pandemic)
+
+# Dataset of year 2021
+#postpandemic_long_new <- full_long_new %>% filter(year.x %in% c(2021))
+#postpandemic <- lm(avg_sale_price ~ neighborhood, data=postpandemic_long_new)
+#summary(postpandemic)
+#confint(postpandemic)
 ```
