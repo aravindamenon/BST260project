@@ -79,6 +79,7 @@ library(gtsummary)
 library(caret)
 library(rpart)
 library(rpart.plot)
+library(splitstackshape)
 ```
 
 ### Boston government website data
@@ -897,11 +898,6 @@ factors_long <- eval_all
 ```
 
 ```{r}
-#summary(full_long) #observe that 597K out of 900K outcome data missing
-#summary(full_long$neighborhood) #see several low end outliers
-# Attempt at grouped sale prices with existing dataframe (observe NAs)
-#sale_attempt <- full_long %>% group_by(neighborhood, year, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
-
 #Clear unneeded data frames to clear memory
 rm(eval2017, eval2018, eval2019, eval2020, eval2021, eval_all,adi_all, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
 
@@ -922,30 +918,15 @@ sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mu
 #Removing two additional data frames that we no longer need because of the join above
 rm(df.all.sales, factors_long)
 
-#summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
-#summary(full_long_new)
-
-#full_long_new <- full_long_new %>% mutate(yr_remod=na_if(yr_remod,0))
-#full_long_new <- full_long_new %>% filter(neighborhood !="Downtown")
-#full_long_new <- full_long_new %>% mutate(yr_built=na_if(yr_built,0))
-#full_long_new <- full_long_new %>% mutate(av_bldg = replace (av_bldg, av_bldg <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(av_land = replace (av_land, av_land <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(av_total = replace (av_total, av_total <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(heat_type = as.factor(heat_type))
-#full_long_new <- full_long_new %>% mutate(condition = as.factor(condition)) %>% mutate(ac_type = as.factor(ac_type)) 
-#full_long_new <- full_long_new %>% mutate(school_district = as.factor(school_district)) %>% mutate(year.x = as.factor(year.x))
+#Creating new variable for COVID19 as binary (presence/absence)
 full_long_new$COVID19 <- 0
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2017", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2018", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2019", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2020", "1"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2021", "1"))
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2017', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2018', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2019', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2020', 1, 0)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2021', 1, 0)
-#summary(full_long_new$avg_sale_price)
+
+#Creating new variable for SALE as binary (high/low as 1/0 meaning above or below the median of average sale price)
 full_long_new$SALE <- 0
 full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price >"613000", "1"))
 full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price <"613001", "0"))
@@ -999,13 +980,6 @@ confint(inflation_random)
 
 #Observation: we see that there is a clear spike in a home's average sale price in 2020 with an effect estimate of an increase in the millions USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates (and hence why we don't fixate on the exact effect estimate) but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike. 
 
-library(splitstackshape)
-library(caret)
-library(MASS)
-library(pROC)
-library(rpart)
-library(randomForest)
-
 #We move on to take advantage of our recently created binary variable 'SALE', which is coded SALE = 1 for sale prices above the median and SALE = 0 for sale prices including and below the median. We will also take advantage of our 
 index_train<- createDataPartition(y = rando$SALE, times =1, p=0.7, list = FALSE)
 train_set <- slice(rando, index_train)
@@ -1015,25 +989,6 @@ p_hat_logit <- predict(glm_fit, newdata = test_set, type="response")
 y_hat_logit <- ifelse(p_hat_logit > 0.5, "1", "0")
 confusionMatrix(data = as.factor(y_hat_logit), reference = test_set$SALE)
 #Observation: given 1 million observations, we had the luxury of using 70% of our data to train and 30% to test for the outcome of high vs low expected sale price. The overall accuracy is 76% with a sensitivity of 94% and specificity of 42%. 
-
-#summary(full_long_new)
-# Dataset of years 2017-2019
-#prepandemic_long_new <- full_long_new %>% filter(year.x %in% c(2017, 2018, 2019))
-#prepandemic <- lm(avg_sale_price ~ neighborhood+as.factor(year.x) + type, data=prepandemic_long_new)
-#summary(prepandemic)
-#confint(prepandemic)
-
-#Dataset of year 2020
-#pandemic_long_new <- full_long_new %>% filter(year.x %in% c(2020))
-#pandemic <- lm(avg_sale_price ~ neighborhood, data=pandemic_long_new)
-#summary(pandemic)
-#confint(pandemic)
-
-# Dataset of year 2021
-#postpandemic_long_new <- full_long_new %>% filter(year.x %in% c(2021))
-#postpandemic <- lm(avg_sale_price ~ neighborhood, data=postpandemic_long_new)
-#summary(postpandemic)
-#confint(postpandemic)
 ```
 
 ## Decision tree model
