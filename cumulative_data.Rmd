@@ -51,6 +51,10 @@ Can we use data from 2017-2019 to predict housing prices in 2020?
 
 * Step 3: Apply to predict prices in 2020-2021.
 
+## Note
+
+We also found that many of our planned potential predictors ended up having no effect on the models and were only slowing down our RMD file (in some cases, preventing the file from knitting completely). Thus, those factors were removed. However, we left the code for uploading and data wrangling for those factors in this RMD (without running it) to show our thought process. 
+
 ## Preparing data
 
 ### Uploading libraries
@@ -95,14 +99,17 @@ eval2020<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-45
 eval2021<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-459c-8fe2-e1ce5f38a035/resource/c4b7331e-e213-45a5-adda-052e4dd31d41/download/data2021-full.csv"))
 
 ```
+
+### Exploratory analyis
+
 Initial overview of the datasets included the function skim() to evaluate for missingness. We are not including that code here as it delays the RMD knitting.
 
 ```{r}
-str(eval2017)
-str(eval2018)
-str(eval2019)
-str(eval2020)
-str(eval2021)
+glimpse(eval2017)
+glimpse(eval2018)
+glimpse(eval2019)
+glimpse(eval2020)
+glimpse(eval2021)
 ```
 
 We filtered out the properties that were only residential ("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC", which stand for "Residential 7 or more units", "Residential condominium unit", "Condominium main", "Residential 1-family," "2-family", "3-family", "4- or more family", and "Mixed use (residential and commercial)").
@@ -127,9 +134,8 @@ We chose to use select for the following variables given that they are often the
 
 * Other variables were available but had a large amount of missingness or seemed trivial compared to other variables in determining property value.
 
-
 ```{r}
-eval2017res <- eval2017 %>% 
+eval2017 <- eval2017 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% # Lu refers to type of property; limiting data to residential property only
   mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of addresses to those in 2021 dataset
   mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% # Different variables used for residential properties (r) and units (u), so this is code to unify them into one variable
@@ -149,7 +155,7 @@ eval2017res <- eval2017 %>%
   select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>%  #Keeping assessed value for the building, land, and total. Keeping address (st_name) and parcel numbers for reference (pid). Keeping tax bill amount (based on av_total and tax rate), square footage of land and living area. Keeping type of property. Keeping property-level factors: number of floors, presence of AC and heat (types), number of bedrooms, number of full and half bathrooms, overall condition, year built, year remodeled
   mutate(year = 2017) #Creating a year variable for year of assessment
   
-eval2018res <- eval2018 %>% 
+eval2018 <- eval2018 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
   mutate(st_name = paste(st_name, st_name_suf)) %>%  
   mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
@@ -169,7 +175,7 @@ eval2018res <- eval2018 %>%
   select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2018)
 
-eval2019res <- eval2019 %>% 
+eval2019 <- eval2019 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
   mutate(st_name = paste(st_name, st_name_suf)) %>%  #Match format of 2021
   mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
@@ -183,7 +189,7 @@ eval2019res <- eval2019 %>%
   select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2019)
 
-eval2020res <- eval2020 %>% 
+eval2020 <- eval2020 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
   mutate(st_name = paste(st_name, st_name_suf)) %>%  
   mutate(ac_type = ifelse(!is.na(r_ac), r_ac, u_ac)) %>% 
@@ -211,7 +217,7 @@ eval2020res <- eval2020 %>%
   select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2020)
 
-eval2021res <- eval2021 %>% 
+eval2021 <- eval2021 %>% 
   filter(lu %in% c("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC")) %>% 
   rename(yr_remod = yr_remodel, bedrooms = bed_rms, av_bldg = bldg_value, av_land = land_value, av_total = total_value, bath_full = full_bth, bath_half = hlf_bth, condition = overall_cond, num_floors = res_floor) %>% #Matching names of variables to those in other years datasets. 2021 is missing separate variables for residential (r) and condo units (u) in favor of joint variables
   mutate(ac_type = replace(ac_type, ac_type == "C - Central AC", "C"), #Match format to other years
@@ -243,21 +249,21 @@ eval2021res <- eval2021 %>%
 Check the structures of all the datasets prior to joining:
 
 ```{r}
-str(eval2017res)
-str(eval2018res)
-str(eval2019res)
-str(eval2020res)
-str(eval2021res)
+glimpse(eval2017)
+glimpse(eval2018)
+glimpse(eval2019)
+glimpse(eval2020)
+glimpse(eval2021)
 ```
 
 Joining all City of Boston data, and adding neighborhoods based on the zip codes, using [this reference](http://archive.boston.com/news/local/articles/2007/04/15/sixfigurezipcodes_city/) and Google maps:
 
 ```{r}
-eval_all <- eval2017res %>% 
-  full_join(eval2018res) %>% 
-  full_join(eval2019res) %>% 
-  full_join(eval2020res) %>% 
-  full_join(eval2021res)
+eval_all <- eval2017 %>% 
+  full_join(eval2018) %>% 
+  full_join(eval2019) %>% 
+  full_join(eval2020) %>% 
+  full_join(eval2021)
 
 eval_all <- eval_all %>% 
   rename(zipid = zipcode) %>% 
@@ -292,13 +298,15 @@ eval_all <- eval_all %>%
 
 ### Air Quality Index (AQI)
 
+**This ended up being a predictor that we did not use in our final models. Thus, we did not run the code in the final models but included it below to demonstrate our thought process and work.**
+
 Reading in [AQI data](https://aqicn.org/data-platform/register/):
 
-_Note:_ We had air quality data in the form of PM2.5 (Parameter name PM2.5 local conditions), which were subsequently converted to AQI by this table. Given we didn't have all the data to use the AQI calculation and derive exact numbers, we instead made AQI a factor variable with 5 levels using the following table ([reference 1](https://www.epa.gov/sites/default/files/2014-05/documents/zell-aqi.pdf), [reference 2](https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf)):
+_Note:_ We had air quality data for four Boston-area neighborhoods. The data was originally in the form of PM2.5 (Parameter name PM2.5 local conditions), which were subsequently converted to AQI by this table. Given we didn't have all the data to use the AQI calculation and derive exact numbers, we instead made AQI a factor variable with 5 levels using the following table ([reference 1](https://www.epa.gov/sites/default/files/2014-05/documents/zell-aqi.pdf), [reference 2](https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf)):
 
 ![](aqi.png)
  
-```{r}
+```{r, eval = F}
 aqi_boston <- clean_names(read_csv("boston-air-quality.csv")) %>% 
   mutate(date = ymd(date)) %>% 
   mutate(year = as.numeric(year(date))) %>% 
@@ -360,6 +368,8 @@ aqi_all <- aqi_boston %>%
 
 ### Area Deprivation Index (ADI)
 
+**This was another factor we did not use in our final model. One potential reason is that ADI was collinear with neighborhoods. Thus, we did not run the code in the final models but included it below to demonstrate our thought process and work.**
+
 Reading in ADI data from the [Neighborhood Atlas website](https://www.neighborhoodatlas.medicine.wisc.edu/).
 
 _Note:_ Codebook as follows:
@@ -376,9 +386,9 @@ _Note:_ Codebook as follows:
 
 * ADI_STATERNK: State-specific decile of block group ADI score. PH for suppression due to low population and/or housing, GQ for suppression due to a high group quarters population, and PH-GQ for suppression due to both types of suppression criteria.
 
-**_Note:_ Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins; thus 2015 was used as a proxy for 2017.**
+Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins; thus 2015 was used as a proxy for 2017.
 
-```{r}
+```{r, eval = F}
 #Defining a function for mode
 getmode <- function(v) {
   uniqv <- unique(v)
@@ -802,7 +812,7 @@ Description of data within columns:
 ```{r}
 df.bos.housing <-rbind(df.boston, l_condo_sixteen, l_house_sixteen, l_condo_nineteen, l_house_nineteen, l_condo_twenty, l_house_twenty)
 df.bos.housing <-df.bos.housing %>% arrange(Year)
-view(df.bos.housing)
+head(df.bos.housing)
 dim(df.bos.housing)
 
 df.bos.housing <- clean_names(df.bos.housing)
@@ -878,110 +888,12 @@ Additionally, neighborhoods listed under [this article](https://www.propertyshar
 
 ```{r}
 # Dataset of all the factors affecting prices
-factors_long <- eval_all %>% 
-  left_join(aqi_all) %>%  #joining by year, neighborhood
-  left_join(adi_all)
-```
+factors_long <- eval_all 
 
-##STOPPED HERE and jump to a different join as in code line 1000+
-```{r}
-# Dataset of all the factors plus sold prices from Redfin and Boston Magazine
-#full_long <- factors_long %>% 
- # full_join(df.all.sales) %>% 
-  #filter(neighborhood != "Other") %>% 
-  #mutate(neighborhood = as.factor(neighborhood)) %>% 
-  #mutate(fast_growing = ifelse(neighborhood %in% c("Bay Village South End", "Downtown", "Chinatown Leather District", "Beacon Hill", "East Boston", "Roxbury"), "Fast Growing", "Slow Growing"))
+#%>% left_join(aqi_all) 
+#%>% left_join(adi_all)
 
-# Dataset of years 2017-2019
-#pre_long <- full_long %>% 
- # filter(year %in% c(2017, 2018, 2019))
-
-# Dataset of years 2020-2021
-#post_long <- full_long %>% 
- # filter(year %in% c(2020, 2021))
-
-#str(full_long)
-```
-
-## Initial visualization
-
-```{r}
-#full_long %>% 
- # filter(!is.na(avg_sale_price)) %>% 
-  #ggplot(aes(x = year, y = avg_sale_price, color = neighborhood)) +
-  #geom_line() + 
-  #scale_y_log10() 
-
-#full_long %>% 
- # filter(!is.na(avg_sale_price)) %>% 
-  #ggplot(aes(x = year, y = avg_sale_price, color = fast_growing)) +
-  #geom_line() + 
-  #scale_y_log10()
-  
-```
-
-## Initial machine learning model
-
-Can we use data from 2017-2019 to predict housing prices in 2020? 
-
-Step 1: Build a training and test set from 2017-2019
-Step 2: Optimize model
-Step 3: Apply to predict prices in 2020-2021.
-
-```{r}
-#pre_complete <- pre_long %>% 
- # filter(!is.na(avg_sale_price))
-#post_complete <- post_long %>% 
- # filter(!is.na(avg_sale_price))
-```
-
-```{r}
-# Decision tree using data from 2017-2019 split into training and test sets
-
-# Stratify the sample into training and testing data
-
-#set.seed(1)
-
-#stratified <- createDataPartition(pre_complete$avg_sale_price, 0.7, list = F, times = 1)
-#train_set <- pre_complete[stratified, ]
-#test_set <- pre_complete[-stratified, ]
-
-#dim(train_set)
-#dim(test_set)
-
-# Decision tree on test set from 2017 - 2019
-
-#tree_fit <- train_set %>% 
- # rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms + bath_full + yr_remod + neighborhood + aqi + adi_mode, data = ., maxdepth = 5, minbucket = 1)
-
-#tree_fit
-#rpart.plot(tree_fit, type = 3, digits = 3, fallen.leaves = T)
-
-#tree_pred <- predict(tree_fit, newdata = test_set)
-
-# Mean absolute error
-#mean(abs(tree_pred - test_set$avg_sale_price))
-
-# Mean square error
-#mean((tree_pred - test_set$avg_sale_price)^2)
-```
-
-```{r}
-# Decision tree using training set as all data from 2017-2019 and test set as all data from 2020
-
-#tree_fit_2 <- pre_complete %>% 
- # rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms + bath_full + yr_remod + neighborhood + aqi + adi_mode, data = ., maxdepth = 5, minbucket = 1)
-
-#tree_fit_2
-#rpart.plot(tree_fit_2, type = 3, digits = 3, fallen.leaves = T)
-
-#tree_pred_2 <- predict(tree_fit_2, newdata = post_complete)
-
-# Mean absolute error
-#mean(abs(tree_pred_2 - post_complete$avg_sale_price))
-
-# Mean square error
-#mean((tree_pred_2 - post_complete$avg_sale_price)^2)
+# Removed the last two lines as no longer using AQI and ADI
 ```
 
 ```{r}
@@ -990,10 +902,9 @@ Step 3: Apply to predict prices in 2020-2021.
 # Attempt at grouped sale prices with existing dataframe (observe NAs)
 #sale_attempt <- full_long %>% group_by(neighborhood, year, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 
-#Clear unnneded data frames
-rm(eval2017, eval2018, eval2019, eval2020, eval2021, eval_all, eval2017res, eval2018res, eval2019res, eval2020res, eval2021res, adi_all, adi2017, adi2019, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
+#Clear unneeded data frames to clear memory
+rm(eval2017, eval2018, eval2019, eval2020, eval2021, eval_all,adi_all, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
 
-#Different data joining to address NAs in 2020 and 2021
 full_long_new <- left_join(df.all.sales, factors_long, by = "neighborhood")
 full_long_new <- subset(full_long_new, select=-c(price_per_sq_ft, number_sold, x1, address, sqr_ft, bedrooms.x, pid, zipid, st_name, baths))
 full_long_new <- full_long_new[!is.na(full_long_new$avg_sale_price), ]
@@ -1062,7 +973,7 @@ sale_long %>%
 full_long_new%>% 
   ggplot(aes(x = year.x, y = av_total, color = neighborhood)) +
   geom_point() + 
-  scale_y_log10() +
+  #scale_y_log10() +
   xlab("Year") + 
   ylab("Property Assessment Value") +
   ggtitle("Property Assessment Values in 2017 through 2021 by Boston Neighborhood") +
@@ -1124,3 +1035,74 @@ confusionMatrix(data = as.factor(y_hat_logit), reference = test_set$SALE)
 #summary(postpandemic)
 #confint(postpandemic)
 ```
+
+## Decision tree model
+
+We started this analysis to try to answer the question: Can we use data from 2017-2019 to predict housing prices in 2020? 
+
+Step 1: Build a training and test set from 2017-2019
+
+```{r}
+# Dataset of years 2017-2019
+pre_complete <- full_long_new %>% 
+  filter(year.x %in% c(2017, 2018, 2019)) %>% 
+  filter(!is.na(avg_sale_price))
+
+# Dataset of years 2020-2021
+post_complete <- full_long_new %>% 
+  filter(year.x %in% c(2020, 2021)) %>% 
+  filter(!is.na(avg_sale_price))
+```
+
+```{r}
+# Decision tree using data from 2017-2019 split into training and test sets
+
+# Stratify the sample into training and testing data
+
+set.seed(1)
+
+stratified <- createDataPartition(pre_complete$avg_sale_price, 0.7, list = F, times = 1)
+train_set <- pre_complete[stratified, ]
+test_set <- pre_complete[-stratified, ]
+
+dim(train_set)
+dim(test_set)
+
+# Decision tree on test set from 2017 - 2019
+
+tree_fit <- train_set %>% 
+ rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms.y + bath_full + yr_remod + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+
+tree_fit
+rpart.plot(tree_fit, type = 3, digits = 3, fallen.leaves = T, tweak = 0.35)
+
+tree_pred <- predict(tree_fit, newdata = test_set)
+
+# Mean absolute error
+mean(abs(tree_pred - test_set$avg_sale_price))
+
+# Mean square error
+mean((tree_pred - test_set$avg_sale_price)^2)
+```
+
+```{r}
+# Decision tree using training set as all data from 2017-2019 and test set as all data from 2020
+
+tree_fit_2 <- pre_complete %>% 
+ rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms.y + bath_full + yr_remod + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+
+tree_fit_2
+rpart.plot(tree_fit_2, type = 3, digits = 3, fallen.leaves = T, tweak = 0.35)
+
+tree_pred_2 <- predict(tree_fit_2, newdata = post_complete)
+
+# Mean absolute error
+mean(abs(tree_pred_2 - post_complete$avg_sale_price))
+
+# Mean square error
+mean((tree_pred_2 - post_complete$avg_sale_price)^2)
+```
+
+
+
+
