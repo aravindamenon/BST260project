@@ -79,6 +79,7 @@ library(gtsummary)
 library(caret)
 library(rpart)
 library(rpart.plot)
+library(splitstackshape)
 ```
 
 ### Boston government website data
@@ -244,6 +245,7 @@ eval2021 <- eval2021 %>%
   mutate_at(vars(av_land, av_bldg, av_total, gross_tax), parse_number) %>% #Remove dollar sign and comma from these variables, make numeric
   select(pid, zipcode, st_name, lu, av_bldg, av_land, av_total, st_name, gross_tax, land_sf, living_area, num_floors, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, yr_built, yr_remod) %>% 
   mutate(year = 2021)
+
 ```
 
 Check the structures of all the datasets prior to joining:
@@ -363,7 +365,6 @@ aqi_all <- aqi_boston %>%
   full_join(aqi_north_end) %>% 
   full_join(aqi_roxbury) %>% 
   full_join(aqi_dorchester)
-
 ```
 
 ### Area Deprivation Index (ADI)
@@ -463,7 +464,6 @@ adi2017 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep =
   group_by(neighborhood) %>%
   summarize(adi_mode = getmode(adi_staternk)) %>% 
   mutate(year = 2017)
-
 
 adi_all <- full_join(adi2017, adi2019)
 ```
@@ -812,8 +812,6 @@ Description of data within columns:
 ```{r}
 df.bos.housing <-rbind(df.boston, l_condo_sixteen, l_house_sixteen, l_condo_nineteen, l_house_nineteen, l_condo_twenty, l_house_twenty)
 df.bos.housing <-df.bos.housing %>% arrange(Year)
-head(df.bos.housing)
-dim(df.bos.housing)
 
 df.bos.housing <- clean_names(df.bos.housing)
 ```
@@ -880,6 +878,7 @@ df.2021sales <- clean_names(read_csv("Redfin_2021_SalesData.csv")) %>%
   rename(avg_sale_price = sale_price)
 
 df.all.sales <- full_join(df.bos.housing, df.2021sales)
+df.all.sales <- subset(df.all.sales, select=-c(x1, address, sqr_ft, bedrooms, baths, walk_score, school_district)) #Anticipating what we'll need and keeping data size manageable.
 ```
 
 ### Joining all data for analysis
@@ -887,77 +886,56 @@ df.all.sales <- full_join(df.bos.housing, df.2021sales)
 Additionally, neighborhoods listed under [this article](https://www.propertyshark.com/Real-Estate-Reports/2017/11/21/bostons-top-5-fastest-rising-neighborhoods-2017/) from 2017 were marked as "fast growing." 
 
 ```{r}
-# Dataset of all the factors affecting prices
-factors_long <- eval_all 
-
-#%>% left_join(aqi_all) 
-#%>% left_join(adi_all)
-
-# Removed the last two lines as no longer using AQI and ADI
-```
-
-```{r}
 #summary(full_long) #observe that 597K out of 900K outcome data missing
 #summary(full_long$neighborhood) #see several low end outliers
 # Attempt at grouped sale prices with existing dataframe (observe NAs)
 #sale_attempt <- full_long %>% group_by(neighborhood, year, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 
-#Clear unneeded data frames to clear memory
-rm(eval2017, eval2018, eval2019, eval2020, eval2021, eval_all,adi_all, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
+# Dataset of all the factors affecting prices is eval_all and that's what we'll proceed with to join with sale data. 
+full_long_new <- left_join(df.all.sales, eval_all, by = "neighborhood")
 
-full_long_new <- left_join(df.all.sales, factors_long, by = "neighborhood")
-full_long_new <- subset(full_long_new, select=-c(price_per_sq_ft, number_sold, x1, address, sqr_ft, bedrooms.x, pid, zipid, st_name, baths))
+#Clear unneeded data frames to clear memory
+rm(adi2017, adi2019, df.all.sales, eval_all, eval2017, eval2018, eval2019, eval2020, eval2021, adi_all, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
+
+#Refine full_long_new further and noting large degree of data incompleteness. Due to this we'll only remove NAs from key variables (particularly outcome) as we anticipate moving toward a multiple linear regression to come.
+full_long_new <- subset(full_long_new, select=-c(price_per_sq_ft, number_sold, pid, zipid, st_name, ac_type, heat_type, bedrooms, bath_full, bath_half, condition, year.y))
 full_long_new <- full_long_new[!is.na(full_long_new$avg_sale_price), ]
 full_long_new <- full_long_new[!is.na(full_long_new$av_total), ]
 full_long_new <- full_long_new[!is.na(full_long_new$av_bldg), ]
 full_long_new <- full_long_new[!is.na(full_long_new$gross_tax), ]
 full_long_new <- full_long_new[!is.na(full_long_new$yr_built), ]
 full_long_new <- full_long_new[!is.na(full_long_new$num_floors), ]
-summary(full_long_new) #see 149K missing out of 9mil+
 full_long_new <- full_long_new %>% mutate(neighborhood = as.factor(neighborhood))
-summary(full_long_new$neighborhood) #confirming several lower end outliers as before 
-sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
-sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
 
-#Removing two additional data frames that we no longer need because of the join above
-rm(df.all.sales, factors_long)
-
-#summary(lm(avg_sale_price ~ as.factor(year.x) + av_total + gross_tax + land_sf + living_area + num_floors + yr_built, data=full_long_new))
-#summary(full_long_new)
-
-#full_long_new <- full_long_new %>% mutate(yr_remod=na_if(yr_remod,0))
-#full_long_new <- full_long_new %>% filter(neighborhood !="Downtown")
-#full_long_new <- full_long_new %>% mutate(yr_built=na_if(yr_built,0))
-#full_long_new <- full_long_new %>% mutate(av_bldg = replace (av_bldg, av_bldg <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(av_land = replace (av_land, av_land <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(av_total = replace (av_total, av_total <1000, NA)) 
-#full_long_new <- full_long_new %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(heat_type = as.factor(heat_type))
-#full_long_new <- full_long_new %>% mutate(condition = as.factor(condition)) %>% mutate(ac_type = as.factor(ac_type)) 
-#full_long_new <- full_long_new %>% mutate(school_district = as.factor(school_district)) %>% mutate(year.x = as.factor(year.x))
+#Creating new variable for COVID19 as binary (presence/absence)
 full_long_new$COVID19 <- 0
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2017", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2018", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2019", "0"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2020", "1"))
 full_long_new <- full_long_new %>% mutate(full_long_new, COVID19 = replace(COVID19, year.x == "2021", "1"))
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2017', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2018', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2019', 0, 1)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2020', 1, 0)
-#full_long_new$COVID19 <- ifelse(full_long_new$year.x == '2021', 1, 0)
-#summary(full_long_new$avg_sale_price)
+
+#Creating new variable for SALE as binary (high/low as 1/0 meaning above or below the median of average sale price)
 full_long_new$SALE <- 0
 full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price >"613000", "1"))
 full_long_new <- full_long_new %>% mutate(full_long_new, SALE = replace(SALE, avg_sale_price <"613001", "0"))
+
 full_long_new <- full_long_new %>% mutate(SALE = as.factor(SALE))
 full_long_new <- full_long_new %>% mutate(COVID19 = as.factor(COVID19))
 full_long_new <- full_long_new %>% mutate(type = as.factor(type))
-#summary(full_long_new)
-#class(full_long_new$type)
-#summary(full_long_new$avg_sale_price)
+```
+
+```{r, eval = F}
+#We will sample 750K of the 30million + data points and calling it 'rando'. We will come back to this.
+set.seed(1)
+rando <- sample_n(full_long_new, 750000) #taking a random sampling of our data (without replacement) for analysis
+```
+
+```{r}
+##Graphing home sale prices by Boston Neighborhood: we need to create a succinct data frame grouped by neighborhood and year with average sale prices summarized. 
 sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
-#Graphing home sale prices by Boston Neighborhood
+
 sale_long %>% 
   ggplot(aes(x = year.x, y = Sale_Total, color = neighborhood)) +
   geom_point() + 
@@ -968,9 +946,11 @@ sale_long %>%
   ggtitle("Home Sale Prices in 2017 through 2021 by Boston Neighborhood") +
   theme(plot.title = element_text(hjust = 0.5))
 #Observation: we observe that there is an overall spike in home sale prices in 2020, the onset year of the pandemic, and that this seems to decrease almost back to expected levels in 2021. 
+```
 
-#Graphing property assessment values by Boston Neighborhood
-full_long_new%>% 
+```{r, eval = F}
+#Graphing property assessment values by Boston Neighborhood (from 'rando' generated earlier)
+rando%>% 
   ggplot(aes(x = year.x, y = av_total, color = neighborhood)) +
   geom_point() + 
   #scale_y_log10() +
@@ -980,12 +960,17 @@ full_long_new%>%
   theme(plot.title = element_text(hjust = 0.5))
 #Observation: There does not appear to be any discernible shift in property assessment values, regardless of the pandemic. 
 
+#Observation: we observe that there is an overall spike in home sale prices in 2020, the onset year of the pandemic, and that this seems to decrease almost back to expected levels in 2021. 
+```
+
+```{r}
 #Since above we had introduced a new (binary) variable 'COVID19' (indicating presence = 1 or absence = 0 of COVID19 that depends on year with 2020 and onward being a '1'), a multiple linear regression looking at neighborhood (as factor) and COVID19 (as binary) will provide an *overall* estimate for the price change during the pandemic in a home's sale price.
 COVID_full <- lm(avg_sale_price ~ neighborhood+COVID19, data=full_long_new)
 summary(COVID_full)
 confint(COVID_full)
-set.seed(999)
-rando <- sample_n(full_long_new, 1000000) #taking a random 10% sampling of our data (without replacement) for analysis
+```
+
+```{r, eval = F}
 COVID_random <- lm(avg_sale_price ~ neighborhood+COVID19, data=rando)
 summary(COVID_random)
 confint(COVID_random)
@@ -999,13 +984,6 @@ confint(inflation_random)
 
 #Observation: we see that there is a clear spike in a home's average sale price in 2020 with an effect estimate of an increase in the millions USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates (and hence why we don't fixate on the exact effect estimate) but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike. 
 
-library(splitstackshape)
-library(caret)
-library(MASS)
-library(pROC)
-library(rpart)
-library(randomForest)
-
 #We move on to take advantage of our recently created binary variable 'SALE', which is coded SALE = 1 for sale prices above the median and SALE = 0 for sale prices including and below the median. We will also take advantage of our 
 index_train<- createDataPartition(y = rando$SALE, times =1, p=0.7, list = FALSE)
 train_set <- slice(rando, index_train)
@@ -1015,9 +993,17 @@ p_hat_logit <- predict(glm_fit, newdata = test_set, type="response")
 y_hat_logit <- ifelse(p_hat_logit > 0.5, "1", "0")
 confusionMatrix(data = as.factor(y_hat_logit), reference = test_set$SALE)
 #Observation: given 1 million observations, we had the luxury of using 70% of our data to train and 30% to test for the outcome of high vs low expected sale price. The overall accuracy is 76% with a sensitivity of 94% and specificity of 42%. 
+```
 
-#summary(full_long_new)
+## Decision tree model
+
+We started this analysis to try to answer the question: Can we use data from 2017-2019 to predict housing prices in 2020? 
+
+Step 1: Build a training and test set from 2017-2019
+
+```{r}
 # Dataset of years 2017-2019
+<<<<<<< HEAD
 #prepandemic_long_new <- full_long_new %>% filter(year.x %in% c(2017, 2018, 2019))
 #prepandemic <- lm(avg_sale_price ~ neighborhood+as.factor(year.x) + type, data=prepandemic_long_new)
 #summary(prepandemic)
@@ -1045,11 +1031,18 @@ Step 1: Build a training and test set from 2017-2019
 ```{r}
 # Dataset of years 2017-2019
 pre_complete <- full_long_new %>% 
+=======
+pre_complete <- rando %>% 
+>>>>>>> 9cecb2cd1261e82a90e82b1a6fea799b721ea101
   filter(year.x %in% c(2017, 2018, 2019)) %>% 
   filter(!is.na(avg_sale_price))
 
 # Dataset of years 2020-2021
+<<<<<<< HEAD
 post_complete <- full_long_new %>% 
+=======
+post_complete <- rando %>% 
+>>>>>>> 9cecb2cd1261e82a90e82b1a6fea799b721ea101
   filter(year.x %in% c(2020, 2021)) %>% 
   filter(!is.na(avg_sale_price))
 ```
@@ -1071,7 +1064,11 @@ dim(test_set)
 # Decision tree on test set from 2017 - 2019
 
 tree_fit <- train_set %>% 
+<<<<<<< HEAD
  rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms.y + bath_full + yr_remod + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+=======
+ rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + yr_built + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+>>>>>>> 9cecb2cd1261e82a90e82b1a6fea799b721ea101
 
 tree_fit
 rpart.plot(tree_fit, type = 3, digits = 3, fallen.leaves = T, tweak = 0.35)
@@ -1089,7 +1086,11 @@ mean((tree_pred - test_set$avg_sale_price)^2)
 # Decision tree using training set as all data from 2017-2019 and test set as all data from 2020
 
 tree_fit_2 <- pre_complete %>% 
+<<<<<<< HEAD
  rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + bedrooms.y + bath_full + yr_remod + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+=======
+ rpart(avg_sale_price ~ av_bldg + av_land + av_total + gross_tax + land_sf + living_area + yr_built + neighborhood, data = ., maxdepth = 5, minbucket = 1)
+>>>>>>> 9cecb2cd1261e82a90e82b1a6fea799b721ea101
 
 tree_fit_2
 rpart.plot(tree_fit_2, type = 3, digits = 3, fallen.leaves = T, tweak = 0.35)
@@ -1101,8 +1102,12 @@ mean(abs(tree_pred_2 - post_complete$avg_sale_price))
 
 # Mean square error
 mean((tree_pred_2 - post_complete$avg_sale_price)^2)
+<<<<<<< HEAD
 ```
 
 
 
 
+=======
+```
+>>>>>>> 9cecb2cd1261e82a90e82b1a6fea799b721ea101
