@@ -305,9 +305,9 @@ eval_all <- eval_all %>%
 ```{r}
 # Getting average tax across neighbourhoods 
 eval_all1<-eval_all%>% group_by(year,neighborhood)%>%summarise(meantax=mean(gross_tax,na.rm=T))                 
-avgptax<-eval_all1%>%ggplot(aes(x=year,y=meantax,color=neighborhood))+geom_line()+geom_point()+ylim(NA,10000)+theme_bw()+ggtitle("Trend in mean property tax across neighbourhoods")+xlab("Year")+ylab("Average Property Tax")
+avgptax<-eval_all1%>%filter(neighborhood!='NA')%>%ggplot(aes(x=year,y=meantax,color=neighborhood))+geom_line()+geom_point()+ylim(2500,10000)+theme_bw()+ggtitle("Trend in mean property tax across neighbourhoods")+xlab("Year")+ylab("Average Property Tax")
 avgptax
-
+#Wide variance and limiting outliers
 taxval<-aov(meantax~neighborhood+year,data=eval_all1)
 summary(taxval)
 ```
@@ -316,7 +316,7 @@ summary(taxval)
 #Trend in mean price from tax documents
 eval_all2<-eval_all%>% mutate(prsqft=av_total/(land_sf+living_area))%>%filter(neighborhood!="Boston")%>% group_by(year,neighborhood)%>%summarise(avgprsqft=median(prsqft,na.rm=T))
                              
-prsqftpictax<-eval_all2%>%ggplot(aes(x=year,y=avgprsqft,color=neighborhood))+geom_line()+geom_point()+ylim(NA,1000)+theme_bw()+ggtitle("Trend in mean price per square feet across neighbourhoods")+xlab("Year")+ylab("Average price per sq feet")
+prsqftpictax<-eval_all2%>%ggplot(aes(x=year,y=avgprsqft,color=neighborhood))+geom_line()+geom_point()+ylim(NA,1000)+theme_bw()+ggtitle("Trend in mean price per square foot across neighbourhoods")+xlab("Year")+ylab("Average price per sq feet")
 prsqftpictax
 
 val<-aov(avgprsqft~neighborhood+year,data=eval_all2)
