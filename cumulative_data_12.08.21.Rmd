@@ -80,6 +80,7 @@ library(caret)
 library(rpart)
 library(rpart.plot)
 library(splitstackshape)
+
 ```
 
 ### Boston government website data
@@ -307,19 +308,21 @@ eval_all1<-eval_all%>% group_by(year,neighborhood)%>%summarise(meantax=mean(gros
 avgptax<-eval_all1%>%ggplot(aes(x=year,y=meantax,color=neighborhood))+geom_line()+geom_point()+ylim(NA,10000)+theme_bw()+ggtitle("Trend in mean property tax across neighbourhoods")+xlab("Year")+ylab("Average Property Tax")
 avgptax
 
-
+taxval<-aov(meantax~neighborhood+year,data=eval_all1)
+summary(taxval)
 ```
 
 ```{r}
 #Trend in mean price from tax documents
-eval_all2<-eval_all%>% mutate(prsqft=av_total/(land_sf+living_area))%>%filter(neighborhood!="Boston")%>% group_by(year,neighborhood)%>%summarise(avgprsqft=mean(prsqft,na.rm=T))  
+eval_all2<-eval_all%>% mutate(prsqft=av_total/(land_sf+living_area))%>%filter(neighborhood!="Boston")%>% group_by(year,neighborhood)%>%summarise(avgprsqft=median(prsqft,na.rm=T))
                              
 prsqftpictax<-eval_all2%>%ggplot(aes(x=year,y=avgprsqft,color=neighborhood))+geom_line()+geom_point()+ylim(NA,1000)+theme_bw()+ggtitle("Trend in mean price per square feet across neighbourhoods")+xlab("Year")+ylab("Average price per sq feet")
 prsqftpictax
-```
-```{r}
 
+val<-aov(avgprsqft~neighborhood+year,data=eval_all2)
+summary(val)
 ```
+
 
 ### Air Quality Index (AQI)
 
@@ -641,6 +644,18 @@ df.boston <- df.boston %>% mutate("Type"=NA)
 head(df.boston)
 
 ```
+Using 2020 Redfin data to compare priceper sq ft  from real market to tax assessed price per sq ft
+
+```{r}
+df.boston1<-df.boston%>%rename(neighborhood=Neighborhood)
+eval_all2020<-eval_all2%>% filter(year==2020)
+combined2020<-merge(x=eval_all2020,y=df.boston1,by='neighborhood',all.x=TRUE)
+combined2020<-combined2020%>%mutate(pricediff=`Price Per SqFt`- avgprsqft)
+
+inflation<-combined2020%>%ggplot(aes(x=neighborhood,y=combined2020$pricediff,fill=neighborhood))+geom_bar(stat="identity")+theme_classic()+ggtitle("Difference price per square foot across neighbourhoods in 2020")+xlab("Neighborhood")+ylab("Difference in price per sq foot")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+theme(legend.position = "none")
+
+inflation
+```
 
 Historic data scraped from [Boston Magazine](https://www.bostonmagazine.com/best-places-to-live-2017-condos/).
 
@@ -949,7 +964,7 @@ full_long_new <- full_long_new %>% mutate(COVID19 = as.factor(COVID19))
 full_long_new <- full_long_new %>% mutate(type = as.factor(type))
 ```
 
-```{r, eval = F}
+```{r}
 #We will sample 750K of the 30million + data points and calling it 'rando'. We will come back to this.
 set.seed(1)
 rando <- sample_n(full_long_new, 750000) #taking a random sampling of our data (without replacement) for analysis
