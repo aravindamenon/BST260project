@@ -1,0 +1,262 @@
+---
+title: "BarPlotCode"
+author: "ZsuZsuChen"
+date: "12/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+##Plotting the average house sale price across Boston Metro neighborhoods per year
+
+##Data Cleaning
+
+Read in housing data for plot.
+
+```{r}
+
+library(readr)
+library(tidyverse)
+library(ggplot2)
+
+df.saleplot <- read_csv(file = "rando.csv")
+df.saleplot <- df.saleplot %>%
+  mutate(neighborhood = as.factor(neighborhood))
+head(df.saleplot)
+```
+
+Create average sale price, assessment value, and tax by neighborhood for 2021.
+Dataframe had individual property data and not average.
+
+```{r}
+df.sale2021 <- df.saleplot %>% filter(year.x == "2021") %>% 
+  select(neighborhood, year.x, avg_sale_price, av_total, gross_tax) %>% 
+  arrange(neighborhood, desc(avg_sale_price)) %>% 
+  mutate(avg_sale_price=as.factor(avg_sale_price))
+head(df.sale2021)
+dim(df.sale2021)
+
+df.sale2021.final <- df.sale2021 %>% 
+  group_by(neighborhood, avg_sale_price) %>% 
+  mutate(hood_avg_assess = mean(av_total),
+         hood_avg_tax = mean(gross_tax)) %>% 
+  select(-av_total, -gross_tax) %>% 
+  distinct(avg_sale_price, .keep_all = T) %>% 
+  mutate(avg_sale_price=as.character(avg_sale_price)) %>% 
+  mutate(avg_sale_price=as.numeric(avg_sale_price)) %>% 
+  group_by(neighborhood) %>% 
+  mutate(hood_avg_sale = mean(avg_sale_price)) %>% 
+  select(-avg_sale_price) %>% 
+  distinct(hood_avg_sale, .keep_all = T)
+head(df.sale2021.final)
+df.sale2021.final<-df.sale2021.final[ ,c("year.x", "neighborhood", "hood_avg_sale",
+                                         "hood_avg_assess", "hood_avg_tax")]
+head(df.sale2021.final)
+```
+
+Create average assessment value and tax by neighborhood for 2017-2020 data.
+
+```{r}
+df.saleNOt2021 <- df.saleplot %>% filter(year.x != "2021") %>%
+  arrange(desc(year.x)) 
+head(df.saleNOt2021)
+df.saleNot2021.final <- df.saleNOt2021 %>% group_by(year.x, neighborhood) %>%
+  summarise(hood_avg_sale = mean(avg_sale_price),
+            hood_avg_assess = mean(av_total),
+            hood_avg_tax = mean(gross_tax))
+head(df.saleNot2021.final)
+
+```
+
+Cbind 2021 and 2017-2020 data.
+
+```{r}
+
+df.salebarplot <- rbind(df.saleNot2021.final, df.sale2021.final)
+df.salebarplot <- df.salebarplot %>% 
+  mutate(`10K_avg_sale`=hood_avg_sale/10000, 
+         `10K_avg_assess`=hood_avg_assess/10000,
+         `10K_avg_tax`=hood_avg_tax/10000)
+df.salebarplot <- df.salebarplot %>% 
+  gather(key = "Housing Trait", value = `10K_value`,
+         `10K_avg_sale`, `10K_avg_assess`, `10K_avg_tax`)
+df.salebarplot <- df.salebarplot %>% select(`year.x`, `neighborhood`, `Housing Trait`, `10K_value`)
+df.salebarplot <- df.salebarplot %>% 
+  mutate(color=
+           case_when(
+             neighborhood=='Allston' ~ 'brown1',
+             neighborhood=='Back Bay' ~ 'darkorange',
+             neighborhood=='Beacon Hill' ~ 'orange 3',
+             neighborhood=='Boston'~ 'salmon1',
+             neighborhood=='Brighton'~ 'chartreuse4',
+             neighborhood=='Brookline'~ 'springgreen4',
+             neighborhood=='Charlestown'~ 'springgreen3',
+             neighborhood=="Chinatown Leather District" ~ 'green3',
+             neighborhood=='Dorchester'~ 'springgreen2',
+             neighborhood=='East Boston'~ 'turquoise2',
+             neighborhood=='Fenway'~'blue1',
+             neighborhood=='Hyde Park'~ 'turquoise3',
+             neighborhood=='Jamaica Plain'~ 'steelblue1',
+             neighborhood=='Mattapan'~ 'slateblue1',
+             neighborhood=='North End West End'~'blueviolet',
+             neighborhood=='Roslindale'~ 'purple1',
+             neighborhood=='Roxbury'~ 'magenta1',
+             neighborhood=='South Boston'~ 'magenta3',
+             neighborhood=='West Roxbury'~ 'maroon1',
+  )) %>% 
+  mutate(color=
+           ifelse(`Housing Trait`=='10K_avg_assess', 'gray36', color)) %>% 
+  mutate(color=
+           ifelse(`Housing Trait`=='10K_avg_tax', 'gray49', color))
+head(df.salebarplot)
+
+```
+
+##Barplot of housing sale prices by year.
+
+Combine pre-pandemic years.
+
+```{r pressure, echo=FALSE}
+
+hood2 <- c("Allston", "Back Bay", "Beacon Hill", "Boston", "Brighton", "Brookline", "Charlestown", "Dorchester", "East Boston", "Hyde Park", "Jamaica Plain", "Mattapan", "Roslindale", "Roxbury", "South Boston", "West Roxbury")
+
+df.salebarplot %>%
+  filter(year.x %in% c("2017", "2018", "2019"), neighborhood %in% hood2, `Housing Trait`=='10K_avg_sale') %>%
+  ggplot(aes(x = neighborhood, y = `10K_value`, fill = neighborhood))+
+  geom_bar(stat = "identity", color= "black")+
+  scale_fill_manual(values = df.salebarplot$color)+
+  ylim(0,300)+
+  facet_grid(~year.x)+
+  labs(title = "Pre-pandemic Average Housing Sale Price in Boston", x="Neighborhood", 
+  y="Average Sale Price (per $10,000)")+
+  theme_classic()+
+  theme(legend.position ="none", axis.text.x=element_text(angle = 45, hjust =1))
+#ggsave("Pre_Sale_Plot.jpeg", device='jpeg', dpi=300)
+```
+
+Combine post-pandemic years.
+
+```{r}
+df.salebarplot %>%
+  filter(year.x %in% c("2020", "2021"), neighborhood %in% hood2, `Housing Trait`=='10K_avg_sale') %>%
+  ggplot(aes(x = neighborhood, y = `10K_value`, fill = neighborhood))+
+  geom_bar(stat = "identity", color= "black")+
+  scale_fill_manual(values = df.salebarplot$color)+
+  ylim(0,300)+
+  facet_grid(~year.x)+
+  labs(title = "Pre-pandemic Average Housing Sale Price in Boston", x="Neighborhood", 
+  y="Average Sale Price (per $10,000)")+
+  theme_classic()+
+  theme(legend.position ="none", axis.text.x=element_text(angle = 45, hjust =1))
+#ggsave("Post_Sale_Plot.jpeg", device='jpeg', dpi=300)
+```
+
+##Barplot including average assessment value.
+
+
+Combine plots together by pre-pandemic and post-pandemic
+
+Pre-pandemic
+```{r}
+df.salebarplot %>%
+  filter(year.x %in% c("2017", "2018", "2019"), neighborhood %in% hood2, `Housing Trait` %in% c('10K_avg_sale', '10K_avg_assess')) %>%
+  ggplot(aes(x = neighborhood, y = `10K_value`, fill = interaction(neighborhood, `Housing Trait`)))+
+  geom_bar(stat = "identity", color= "black")+
+  scale_fill_manual(values = c('brown1',
+'darkorange',
+'orange 3',
+'salmon1',
+'chartreuse4',
+'springgreen4',
+'springgreen3',
+'springgreen2',
+'turquoise2',
+'turquoise3',
+'steelblue1',
+'slateblue1',
+'purple1',
+'magenta1',
+'magenta3',
+'maroon1',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49'
+))+
+  ylim(0,300)+
+  facet_wrap(~`year.x`)+
+  labs(title = "Pre-pandemic Average Housing Sale Price and Assessments Value in Boston", x="Neighborhood", 
+  y="Average Sale Price (per $10,000)")+
+  theme_classic()+
+  theme(legend.position ="none", axis.text.x=element_text(angle = 45, hjust =1))
+ggsave("PreAssess.jpeg", device="jpeg", dpi=300)
+
+```
+
+Post pandemic
+```{r}
+df.salebarplot %>%
+  filter(year.x %in% c("2020", "2021"), neighborhood %in% hood2, `Housing Trait` %in% c('10K_avg_sale', '10K_avg_assess')) %>%
+  ggplot(aes(x = neighborhood, y = `10K_value`, fill = interaction(neighborhood, `Housing Trait`)))+
+  geom_bar(stat = "identity", color= "black")+
+  scale_fill_manual(values = c('brown1',
+'darkorange',
+'orange 3',
+'salmon1',
+'chartreuse4',
+'springgreen4',
+'springgreen3',
+'springgreen2',
+'turquoise2',
+'turquoise3',
+'steelblue1',
+'slateblue1',
+'purple1',
+'magenta1',
+'magenta3',
+'maroon1',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49',
+'gray49'
+))+
+  ylim(0,300)+
+  facet_wrap(~`year.x`)+
+  labs(title = "Post-pandemic Average Housing Sale Price and Assessments Value in Boston", x="Neighborhood", 
+  y="Average Sale Price (per $10,000)")+
+  theme_classic()+
+  theme(legend.position ="none", axis.text.x=element_text(angle = 45, hjust =1))
+ggsave("PostAssess.jpeg", device="jpeg", dpi=300)
+```
