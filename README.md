@@ -42,7 +42,7 @@ We will use linear regression to model property price trends in 2017 to 2019 to 
 
 Objective 3: We will use multiple linear regression models to explore if other factors such as neighborhood sociodemographics (defined by ADI), school districts, and air quality may contribute to house price inflation.
 
-For our final product, we plan to create a data visualisation platform (using RShiny) to create an interactive map that will allow users to visualize differences in housing prices across the years of 2017-2021, see projected changes in the year 2022 given if a COVID-19 surge were or were not to occur, and see visualizations of regional differences in other sociodemographic and environmental factors that may be contributing to housing price inflations in the neighborhoods of metropolitan and suburban Boston.
+For our final product, we plan to create a data visualisation, regression and machine learning model looking at the factors affecting the prices across neighbourhoods and the impact of COVID-19
 
 Schedule/ TImeline
  
