@@ -5,6 +5,7 @@ date: "12/12/2021"
 output: 
   html_document:
     toc: yes
+    number_sections: yes
     
 ---
 Suppress messages and warnings for this markdown
@@ -13,51 +14,79 @@ Suppress messages and warnings for this markdown
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-## Overview and Motivation
+# Overview and Motivation
 
-Increases in real estate prices were seen across the country over the course of the COVID-19 pandemic, with the Case-Shiller U.S. National Home Price Index showing an [18.6% growth in housing prices](https://www.whitehouse.gov/cea/blog/2021/09/09/housing-prices-and-inflation/) over the course of September 2020 to 2021. Some factors contributing to this trend included both COVID-related and unrelated factors, such as: lower lending interest rates, [changes in migration from urban to suburban areas or smaller cities given an increase in remote working](https://www.nber.org/papers/w26948), [millennials aging into homeownership](https://www.vox.com/22264268/covid-19-housing-insecurity-housing-prices-mortgage-rates-pandemic-zoning-supply-demand), [an increase in second-home buying](https://www.federalreserve.gov/econres/notes/feds-notes/housing-market-tightness-during-covid-19-increased-demand-or-reduced-supply-20210708.htm), and [a variety of other factors](https://www.cnbc.com/2021/03/12/housing-market-covid-one-year-anniversary.html). 
+Increases in real estate prices were seen across the country over the course of the COVID-19 pandemic, with the Case-Shiller U.S. National Home Price Index showing an [18.6% growth in housing prices](https://www.whitehouse.gov/cea/blog/2021/09/09/housing-prices-and-inflation/) over the course of September 2020 to 2021. Some factors contributing to this trend included both COVID-related and unrelated factors, such as: lower lending interest rates, [changes in migration from urban to suburban areas or smaller cities given an increase in remote working](https://www.nber.org/papers/w26948), [millennials aging into homeownership](https://www.vox.com/22264268/covid-19-housing-insecurity-housing-prices-mortgage-rates-pandemic-zoning-supply-demand), [an increase in second-home buying](https://www.federalreserve.gov/econres/notes/feds-notes/housing-market-tightness-during-covid-19-increased-demand-or-reduced-supply-20210708.htm), and [a variety of other factors](https://www.cnbc.com/2021/03/12/housing-market-covid-one-year-anniversary.html).
+ 
+We wanted to examine how the real estate prices in and around Boston were affected in the years before and after the start of the COVID-19 pandemic defined as March 2020 when Mayor Marty Walsh decladed a [public health emergency](https://www.boston.gov/news/coronavirus-disease-covid-19-boston).  Given that Boston is a huge healthcare hub with some of the leading hospitals, pharmaceutical, and biotech companies, its housing market is more likely to be impacted by COVID-19 trends than other cities. Thus, it is a good model city to study the pandemic-related factors affecting housing inflation. Furthermore, given that Boston has the 4th most number of colleges in the US, trends in housing markets during the COVID-19 pandemic were likely to be affected by the remote learning of 2020 and 2021 influx of college and graduate students as schools moved toward hybrid models of remote and in-person learning.
+ 
+In addition to the effect of the pandemic, we also wanted to explore other factors that may have affected the property prices. We want to contrast how price inflation varies according to neighbourhoods and differences in neighborhood area deprivation index (ADI), school ratings, air quality index (AQI), etc. if available. Thus, we will begin to understand the local trends in housing prices in Boston before and after the start of the COVID-19 pandemic and begin to explore COVID-related and unrelated factors that could have influenced these trends.
 
-We wanted to examine how the real estate prices in and around Boston were affected during the last four years. Given that Boston is a huge healthcare hub with some of the leading hospitals, pharmaceutical, and biotech companies, its housing market is more likely to be impacted by COVID-19 trends than other cities. Thus, it is a good model city to study the pandemic-related factors affecting housing inflation. Furthermore, given that Boston has the 4th most number of colleges in the US, trends in housing markets during the COVID-19 pandemic were likely to be affected by the 2021 influx of college and graduate students who in 2020 were learning remotely. 
+# Related work
 
-In addition to the effect of the pandemic, we also wanted to explore other factors that may have affected the property prices. We want to contrast how price inflation varies according to neighbourhoods, their area deprivation index, school rating, air quality index (AQI), proximity to medical centers, etc. We believe that this would allow us to see the local impact of property price inflation that has been happening across the country. 
+We were in part inspired by this article on national housing trends during the COVID-19 pandemic that was released by [the White House](https://www.whitehouse.gov/cea/written-materials/2021/09/09/housing-prices-and-inflation/).
+ 
+# Initial questions
 
-## Initial questions
+Our initial plan was the following:
+ 
+* Objective 1: To assess the actual house sale price trend in real estate units from 2017 to 2021, with special attention to the years of the COVID-19 pandemic (2020-2021) and compare this to property value assessment data available from the Analyze Boston website (https://data.boston.gov/). We plan to look at the actual selling price of various units from different Boston neighborhoods through a real estate database (i.e., Zillow, Redfin, or Trulia) and compare it to the City of Boston home assessment prices to see the divergence in the values that could be attributable to property price inflation.
+ 
+* Objective 2: Utilizing regression models based on property data from pre-pandemic (2017-2019) and pandemic (2020-2021) years, we will predict the possible change in housing prices for different metropolitan and suburban regions of Boston in 2022 given 1) there is no further COVID-19 surge and 2) there is another COVID-19 surge.
+ 
+* Objective 3: To assess for factors that affect inflation of property price beyond COVID-19, including sociodemographic (i.e., neighbourhood, [ADI](https://www.neighborhoodatlas.medicine.wisc.edu/), facilities (i.e., [proximity to medical center](https://data.boston.gov/dataset/hospital-locations), [school district ratings](https://www.niche.com/k12/search/best-school-districts/t/boston-suffolk-ma/) and environmental data (i.e., AQI).
 
-Our intial plan was the following: 
+# Data sources
 
-* Objective 1: To assess the actual house sale price trend in real estate units from 2017 to 2021, with special attention to the years of the COVID-19 pandemic (2020-2021) and compare this to property value assessment data available from the Analyze Boston website (https://data.boston.gov/).  We plan to look at the actual selling price of various units from different Boston neighborhoods through a real estate database (i.e., Zillow, Redfin, or Trulia) and compare it to the City of Boston home assessment prices to see the divergence in the values that could be attributable to property price inflation.
-
-* Objective 2: Utilizing regression models based on property data from pre-pandemic (2017-2019) and pandemic (2020-2021) years, we will predict the possible change in housing prices for different metropolitan and suburban regions of Boston in 2022 given 1) there is no further COVID-19 surger and 2) there is another COVID-19 surge.
-
-* Objective 3: To assess for factors that affect inflation of property price beyond COVID-19, including sociodemographic (i.e., neighbourhood, ADI https://www.neighborhoodatlas.medicine.wisc.edu/ ), facilities (i.e., proximity to medical center https://data.boston.gov/dataset/hospital-locations, school district ratings https://www.niche.com/k12/search/best-school-districts/t/boston-suffolk-ma/) and environmental data (i.e., air quality index).
-
-## Data sources
-
-1. The primary data regarding the actual value of the property prices was be obtained through the [city of Boston property assessment database](https://data.boston.gov/dataset/property-assessment) for the years of 2017-2021.
-
-2. Real world property closing price data were  obtained through web scraping from publicly available property listing websites Redfin and Boston Magazine.
-
+1. Primary data regarding the actual housing values was defined as government assessment values and obtained through the [city of Boston property assessment database](https://data.boston.gov/dataset/property-assessment) for the years of 2017-2021.
+ 
+2. Real world property closing price data was obtained through web scraping from publicly available property listing websites including:
+* For pre-COVID housing sale data from 2015-2019, average housing sale prices stratified by metropolitan Boston neighborhoods were obtained from [Boston Magazine](https://www.bostonmagazine.com/).
+  + Years [2015-2016](https://www.bostonmagazine.com/best-places-to-live-2017-single-family-homes/)
+  + Years [2017-2018](https://www.bostonmagazine.com/top-places-to-live-2019-single-family-homes/)
+  + Years [2018-2019](https://www.bostonmagazine.com/property/single-family-home-prices/)
+* For post-COVID housing sale data from 2020, average housing sale price stratified by neighborhood was obtained from [Redfin](https://www.redfin.com/city/1826/MA/Boston/housing-market).
+* For post-COVID housing sale data from 2021, housing sale prices from the 5 most recent properties in each metro Boston Neighborhood was individually scrapped from [Redfin](https://www.redfin.com/city/1826/MA/Boston/recently-sold).
+ 
 3. We opted to include a few additional factors contributing to housing prices. The Air Quality Index (AQI) scores were obtained from [this website](https://aqicn.org/data-platform/register/). The Area Deprivation Index (ADI), which are scores of disadvantaged neighborhoods that can have important effects on healthcare outcomes, were obtained from [this website](https://www.neighborhoodatlas.medicine.wisc.edu/).
+ 
+# Adjustment in Analyses
+ 
+*Pre-analysis Planning Adjustments*
 
-## Adjusted question
-
-After discussion with our TA, Rolando, and the availability of the model, we opted to slightly adjust our question to the following:
-
-Can we use data from 2017-2019 to predict housing prices in 2020? 
+After discussion with our TA, Rolando, we refined our questions to:
+ 
+Can we use data from 2017-2019 to predict housing prices in 2020?
 
 * Step 1: Build a training and test set from 2017-2019
 
 * Step 2: Optimize model
 
 * Step 3: Apply to predict prices in 2020-2021.
+ 
+*Post-web scraping/data uploading Adjustments*
 
-## Note
+The initial plan was to scrape individual housing sale data from each year and to match the property with the governement assessments data but adjustments were made after encountering obstacles in data scraping and merging of the primary data.
+
+* Historic hosuing sale data (i.e., for 2015-2020) at the individual property level is not available on webistes such as Redfin, Zillow, and Trulia
+
+* Historic sale price data was only avaialble as an average for city or neighborhoods within the city
+
+* Average property assessment value by neighborhood for 2015-2020 were used since there was not individual property sale data available for those years
+
+* Sale prices from 2021 would have to be scraped for each individual property and since our coding skills were not advanced enough to automate this process, it limited data collection to 5 properties from each of the approximately 20 Boston neighborhoods
+
+* Linking of the 2021 assessments data and the actual housing sale data proved extremely difficult because there was not a unifying ID, therefore average property assessment value by neighborhoods was used
+ 
+*Analysis Adjustments*
+
+The final dataset was extremely large but there was significant missingness for several covariables. To account for this and to prevent maxing out on R memory, the analysis was restricted to data from 2017-2021 although 2015 and 2016 housing sale data had been found.
 
 We also found that many of our planned potential predictors ended up having no effect on the models and were only slowing down our RMD file (in some cases, preventing the file from knitting completely). Thus, those factors were removed. However, we left the code for uploading and data wrangling for those factors in this RMD (without running it) to show our thought process. 
 
-## Preparing data
+# Preparing data
 
-### Uploading libraries
+## Uploading libraries
 
 ```{r}
 #uploading libraries
@@ -83,7 +112,7 @@ library(splitstackshape)
 
 ```
 
-### Boston government website data
+## Boston government website data
 
 Reading in data from the [Analyze Boston website](https://data.boston.gov/dataset/property-assessment) on property financial assessment for years 2017 to 2021:
 
@@ -102,7 +131,7 @@ eval2021<-clean_names(read_csv("https://data.boston.gov/dataset/e02c44d2-3c64-45
 
 ```
 
-### Exploratory analyis
+### Exploratory analysis
 
 Initial overview of the datasets included the function skim() to evaluate for missingness. We are not including that code here as it delays the RMD knitting.
 
@@ -113,6 +142,8 @@ glimpse(eval2019)
 glimpse(eval2020)
 glimpse(eval2021)
 ```
+
+### Data wrangling
 
 We filtered out the properties that were only residential ("A", "CD", "CM", "R1", "R2", "R3", "R4", "RC", which stand for "Residential 7 or more units", "Residential condominium unit", "Condominium main", "Residential 1-family," "2-family", "3-family", "4- or more family", and "Mixed use (residential and commercial)").
 
@@ -291,7 +322,7 @@ eval_all <- eval_all %>%
   mutate(neighborhood = if_else(zipid %in% c("02136", "02137"), "Hyde Park", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02130", "Jamaica Plain", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02126", "Mattapan", neighborhood)) %>%
-  mutate(neighborhood = if_else(zipid %in% c("02113", "02114", "02109"), "North End West End", neighborhood)) %>%
+  mutate(neighborhood = if_else(zipid %in% c("02113", "02114", "02109"), "North End West End", neighborhood)) %>% 
   mutate(neighborhood = if_else(zipid == "02131", "Roslindale", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid %in% c("02119", "02120", "02121"), "Roxbury", neighborhood)) %>%
   mutate(neighborhood = if_else(zipid == "02110", "Seaport District", neighborhood)) %>%
@@ -302,6 +333,10 @@ eval_all <- eval_all %>%
 
 ```
 
+### More exploratory analysis
+
+We looked at property taxes across neighborhoods and years to get a sense of general trends before incorporating sales data.
+
 ```{r}
 # Getting average tax across neighbourhoods 
 eval_all1<-eval_all%>% group_by(year,neighborhood)%>%summarise(meantax=mean(gross_tax,na.rm=T))                 
@@ -311,6 +346,8 @@ avgptax
 taxval<-aov(meantax~neighborhood+year,data=eval_all1)
 summary(taxval)
 ```
+
+We also looked at assessed property values (per square foot) across neighborhoods and years to get a sense of general trends before incorporating sales data.
 
 ```{r}
 #Trend in mean price from tax documents
@@ -323,8 +360,7 @@ val<-aov(avgprsqft~neighborhood+year,data=eval_all2)
 summary(val)
 ```
 
-
-### Air Quality Index (AQI)
+## Air Quality Index (AQI)
 
 **This ended up being a predictor that we did not use in our final models. Thus, we did not run the code in the final models but included it below to demonstrate our thought process and work.**
 
@@ -334,7 +370,7 @@ _Note:_ We had air quality data for four Boston-area neighborhoods. The data was
 
 ![](aqi.png)
  
-```{r }
+```{r, eval = F}
 aqi_boston <- clean_names(read_csv("boston-air-quality.csv")) %>% 
   mutate(date = ymd(date)) %>% 
   mutate(year = as.numeric(year(date))) %>% 
@@ -393,7 +429,7 @@ aqi_all <- aqi_boston %>%
   full_join(aqi_dorchester)
 ```
 
-### Area Deprivation Index (ADI)
+## Area Deprivation Index (ADI)
 
 **This was another factor we did not use in our final model. One potential reason is that ADI was collinear with neighborhoods. Thus, we did not run the code in the final models but included it below to demonstrate our thought process and work.**
 
@@ -415,7 +451,7 @@ _Note:_ Codebook as follows:
 
 Given that we had ADI data available for 2015 and 2019 only, for analysis purposes, the assumption was made that 2015 is comparable enough to 2017, when our analysis begins; thus 2015 was used as a proxy for 2017.
 
-```{r }
+```{r, eval = F}
 #Defining a function for mode
 getmode <- function(v) {
   uniqv <- unique(v)
@@ -494,12 +530,13 @@ adi2017 <- clean_names(read.delim('MA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep =
 adi_all <- full_join(adi2017, adi2019)
 ```
 
-### Redfin and Boston Magazine data 
+## Redfin and Boston Magazine data 
+
+### Web scraping
 
 Read html from Redfin for aggregrate housing sale trends in different Boston neighborhoods. Data from January 2020.
 
 ```{r}
-
 bos <- read_html("https://www.redfin.com/city/1826/MA/Boston/housing-market#recentlysold")
 send <- read_html("https://www.redfin.com/neighborhood/2529/MA/Boston/South-End")
 dorch <- read_html("https://www.redfin.com/neighborhood/708/MA/Boston/Dorchester/housing-market")
@@ -532,7 +569,6 @@ somer <-read_html("https://www.redfin.com/city/16064/MA/Somerville/housing-marke
 Scrape data from desired html_node.
 
 ```{r}
-
 t.bos <- bos %>% html_node(".RealEstateTrends") %>% html_text()
 t.send <- send %>% html_node(".RealEstateTrends") %>% html_text()
 t.dorch <- dorch %>% html_node(".RealEstateTrends") %>% html_text()
@@ -643,18 +679,6 @@ df.boston <- df.boston[, col_order]
 df.boston <- df.boston %>% mutate("Type"=NA)
 head(df.boston)
 
-```
-Using 2020 Redfin data to compare priceper sq ft  from real market to tax assessed price per sq ft
-
-```{r}
-df.boston1<-df.boston%>%rename(neighborhood=Neighborhood)
-eval_all2020<-eval_all2%>% filter(year==2020)
-combined2020<-merge(x=eval_all2020,y=df.boston1,by='neighborhood',all.x=TRUE)
-combined2020<-combined2020%>%mutate(pricediff=`Price Per SqFt`- avgprsqft)
-
-inflation<-combined2020%>%ggplot(aes(x=neighborhood,y=combined2020$pricediff,fill=neighborhood))+geom_bar(stat="identity")+theme_classic()+ggtitle("Difference price per square foot across neighbourhoods in 2020")+xlab("Neighborhood")+ylab("Difference in price per sq foot")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+theme(legend.position = "none")
-
-inflation
 ```
 
 Historic data scraped from [Boston Magazine](https://www.bostonmagazine.com/best-places-to-live-2017-condos/).
@@ -777,8 +801,6 @@ l_house_nineteen <- t_house_nineteen %>% gather(key = "Year" , value = "Value", 
   mutate("Price Per SqFt"=NA, "Number Sold"=NA, "Type"="House")
 colnames(l_house_nineteen)<-c("Neighborhood", "Year", "Avg Sale Price", "Price Per SqFt", "Number Sold", "Type")
 head(l_house_nineteen)
-
-
 ```
 
 Historic 2018 and 2019 data.
@@ -832,6 +854,23 @@ head(l_house_twenty)
 
 
 ```
+
+### Exploratory analysis
+
+We used 2020 Redfin data to compare sale price per square foot from the real market to the assessed value per square foot (found in `6.2.3 More exploratory analysis` above).
+
+```{r}
+df.boston1<-df.boston%>%rename(neighborhood=Neighborhood)
+eval_all2020<-eval_all2%>% filter(year==2020)
+combined2020<-merge(x=eval_all2020,y=df.boston1,by='neighborhood',all.x=TRUE)
+combined2020<-combined2020%>%mutate(pricediff=`Price Per SqFt`- avgprsqft)
+
+inflation<-combined2020%>%ggplot(aes(x=neighborhood,y=combined2020$pricediff,fill=neighborhood))+geom_bar(stat="identity")+theme_classic()+ggtitle("Difference price per square foot across neighbourhoods in 2020")+xlab("Neighborhood")+ylab("Difference in price per sq foot")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+theme(legend.position = "none")
+
+inflation
+```
+
+### Data wrangling
 
 Combining all of the dataframes for 2015, 2016, 2017, 2018, 2019, 2020.
 
@@ -920,21 +959,21 @@ df.all.sales <- subset(df.all.sales, select=-c(x1, address, sqr_ft, baths, walk_
 head(df.all.sales)
 ```
 
-### Joining all data for analysis
+## Cumulative data for analysis
 
-Additionally, neighborhoods listed under [this article](https://www.propertyshark.com/Real-Estate-Reports/2017/11/21/bostons-top-5-fastest-rising-neighborhoods-2017/) from 2017 were marked as "fast growing." 
+Steps included:
+
+* Joining sales data scraped from Redfin and Boston magazine with the City of Boston data
+
+* Removed missing values from key variables (particularly outcome), making the assumption that missingness is random and additional bias would not be introduced.
+
+* Created a binary variable "COVID19" that was `FALSE` for years 2017-19 and `TRUE` for years 2020-21.
+
+* Created a binary variable "SALE" that was `TRUE` for high sale values, or above the median of average sale price, and `FALSE` for low sale values, or below the median of average sale price)
 
 ```{r}
-#summary(full_long) #observe that 597K out of 900K outcome data missing
-#summary(full_long$neighborhood) #see several low end outliers
-# Attempt at grouped sale prices with existing dataframe (observe NAs)
-#sale_attempt <- full_long %>% group_by(neighborhood, year, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
-
-# Dataset of all the factors affecting prices is eval_all and that's what we'll proceed with to join with sale data. 
+# Joining sales data scraped from Redfin and Boston magazine with the City of Boston data
 full_long_new <- left_join(df.all.sales, eval_all, by = "neighborhood")
-
-#Clear unneeded data frames to clear memory
-rm(adi2017, adi2019, df.all.sales, eval_all, eval2017, eval2018, eval2019, eval2020, eval2021, adi_all, alls, aqi_all, aqi_boston, aqi_dorchester, aqi_north_end, aqi_roxbury, bbay, beachill, bos, bright, brook, camb ,chesthill, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.bos.housing, df.boston, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, mod, nend, ros, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, wrox)
 
 #Refine full_long_new further and noting large degree of data incompleteness. Due to this we'll only remove NAs from key variables (particularly outcome) as we anticipate moving toward a multiple linear regression to come.
 full_long_new <- subset(full_long_new, select=-c(price_per_sq_ft, number_sold, pid, zipid, st_name, ac_type, heat_type, bath_full, bath_half, condition, year.y))
@@ -964,15 +1003,30 @@ full_long_new <- full_long_new %>% mutate(COVID19 = as.factor(COVID19))
 full_long_new <- full_long_new %>% mutate(type = as.factor(type))
 ```
 
+We also found at this point that we were using a lot of memory in the RStudio global environment. For some of us, the analysis below simply did not run ("Error: vector memory exhausted (limit reached?)"). To address this issue, we pursued two steps:
+
+1. Clearing dataframes and lists that are no longer needed in the rest of this R markdown.
+
+2. Taking a random sample of the cumulative data and using that for the rest of the analysis. This is certainly a limitation to our analysis, but we agreed that a random sample of 750,000 still gave us adequate power for our analysis. **Of note,** we also ran our models on the full data set (>9 million, called “full_data_new”), 25% of the data, and 750,000 observations of the data (“rando”). We did not include that code in this R markdown, and opted to show the models based on the sample size of 750,000 observations for consistent results, as we found that the larger samples would often prevent the file from knitting or running, or would exhaust the vector memory. We've included some commentary on our analysis run on the full data or 25% of the data, as applicable.
+
 ```{r}
-#We will sample 750K of the 30million + data points and calling it 'rando'. We will come back to this.
+#Clear unneeded data frames to clear memory
+rm(eval_all, eval_all1, eval_all2, eval_all2020, eval2017, eval2018, eval2019, eval2020, eval2021, alls, avgptax, bbay, beachill, bos, bos.list, bright, brook, camb, chesthill, col_order, col_order2, combined2020, condo_nineteen, condo_sixteen, condo_twenty, ct, ctown, df.2021sales, df.all.sales, df.bos.housing, df.boston, df.boston1, dorch, dt, ebos, funoutput.boston, house_nineteen, house_sixteen, house_twenty, hpark, inflation, jp, ken, l_condo_nineteen, l_condo_sixteen, l_condo_twenty, l_house_nineteen, l_house_sixteen, l_house_twenty, matta, nend, prsqftpictax, ros, rownames, rox, sbos, sea, send, somer, t_condo_nineteen, t_condo_sixteen, t_condo_twenty, t_house_nineteen, t_house_sixteen, t_house_twenty, taxval, val, wrox)
+
+#Taking a random sampling of our data (without replacement) for analysis
 set.seed(1)
-rando <- sample_n(full_long_new, 750000) #taking a random sampling of our data (without replacement) for analysis
+rando <- sample_n(full_long_new, 750000) 
 ```
+
+# Visualization
+
+## Home prices by Boston neighborhood
+
+We observe that there is an overall spike in home sale prices in 2020 in some neighborhoods, the onset year of the pandemic, and that this seems to decrease almost back to expected levels in 2021. 
 
 ```{r}
 ##Graphing home sale prices by Boston Neighborhood: we need to create a succinct data frame grouped by neighborhood and year with average sale prices summarized. 
-sale_long <- full_long_new %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
+sale_long <- rando %>% group_by(neighborhood, year.x, type) %>% summarize(Sale_Total = mean(avg_sale_price)) %>% ungroup()
 sale_long <- sale_long %>% mutate(neighborhood = as.factor(neighborhood)) %>% mutate(year.x = as.factor(year.x))
 
 sale_long %>% 
@@ -984,9 +1038,12 @@ sale_long %>%
   ylab("Home Sale Price") +
   ggtitle("Home Sale Prices in 2017 through 2021 by Boston Neighborhood") +
   theme(plot.title = element_text(hjust = 0.5))
-#Observation: we observe that there is an overall spike in home sale prices in 2020, the onset year of the pandemic, and that this seems to decrease almost back to expected levels in 2021. 
 ```
 
+## Property assessment by Boston neighborhood
+
+There does not appear to be any discernible shift in property assessment values, regardless of the pandemic. 
+ 
 ```{r }
 #Graphing property assessment values by Boston Neighborhood (from 'rando' generated earlier)
 rando%>% 
@@ -997,42 +1054,38 @@ rando%>%
   ylab("Property Assessment Value") +
   ggtitle("Property Assessment Values in 2017 through 2021 by Boston Neighborhood") +
   theme(plot.title = element_text(hjust = 0.5))
-#Observation: There does not appear to be any discernible shift in property assessment values, regardless of the pandemic. 
 
-#Observation: we observe that there is an overall spike in home sale prices in 2020, the onset year of the pandemic, and that this seems to decrease almost back to expected levels in 2021. 
 ```
 
-```{r}
-#Since above we had introduced a new (binary) variable 'COVID19' (indicating presence = 1 or absence = 0 of COVID19 that depends on year with 2020 and onward being a '1'), a multiple linear regression looking at neighborhood (as factor) and COVID19 (as binary) will provide an *overall* estimate for the price change during the pandemic in a home's sale price.
-#COVID_full <- lm(avg_sale_price ~ neighborhood+COVID19, data=full_long_new)
-#summary(COVID_full)
-#confint(COVID_full)
-rm(full_long_new)
-```
+# Linear regression model
+
+Since above we had introduced a new (binary) variable "COVID19" (explained above in `6.6 Cumulative data for analysis`), a multiple linear regression looking at neighborhood (as factor) and COVID19 (as binary) was used to provide an *overall* estimate for the price change during the pandemic in a home's sale price.
 
 ```{r}
+set.seed(1)
 COVID_random <- lm(avg_sale_price ~ neighborhood+COVID19, data=rando)
 summary(COVID_random)
 confint(COVID_random)
-#Observation: The context of COVID appears to increase a home's sale price as compared to pre-COVID times, neighborhood being held constant. We see this in the full data set with home sale price increased $1,446,869 in the context of COVID with 95% confidence interval [1,435,742, 1,457,996], holding neighborhood constant. In the ~10% sample (with wider 95% CI) the effect estimate is an increased home sale price of $1,416,801 increase [1,382,658, 1,4590,943], holding neighborhood constant. We note here that the 10% sample (given 1 million+ data points) is a reasonable proxy for the full data frame. We will utilize the random sample to fit a logistic regression model with a training and test set later. For now, we should examine the years (each of 2020 and 2021) for a more nuanced picture as below.
 ```
 
-```{r}
-#To allow for a bit finer resolution and taking into account the visualizations above that appear to show a return back down in homes' sale prices in 2021, we regress neighborhood and year as factors for the outcome of average sale price of a home. This will allow for rough estimation of the factor of 2020, as compared to 2017, and then of 2021 as compared to 2017 (and indirectly to 2020), assuming the same neighborhood. We do this with the ~10% data sample.
-#inflation <- lm(avg_sale_price ~ neighborhood+as.factor(year.x), data=full_long_new)
-#summary(inflation)
-#confint(inflation)
-```
+The context of COVID appeared to increase a home's sale price as compared to pre-COVID times, neighborhood being held constant. For computation power and speed in this file we included a random draw. This said, the full data set with home sale price ("full_long_new") increased \$1,446,869 in the context of COVID with 95% confidence interval [1,435,742, 1,457,996], holding neighborhood constant (analysis not shown). In the random ~10% sample ("rando") with wider 95% CI, the effect estimate is an increased home sale price of \$1,438,942 increase [1,399,017, 1,478,867], holding neighborhood constant. We noted here that the 10% sample is a reasonable proxy for the full data frame. We will utilize the random sample to fit a logistic regression model with a training and test set later. For now, we should examine the years (each of 2020 and 2021) for a more nuanced picture as below.
+
+To allow for a bit finer resolution and taking into account the visualizations above that appear to show a return back down in homes' sale prices in 2021, we regressed neighborhood and year as factors for the outcome of average sale price of a home. This allowed for rough estimation of the factor of 2020, as compared to 2017, and then of 2021 as compared to 2017 (and indirectly to 2020), assuming the same neighborhood.
 
 ```{r}
-#To allow for a bit finer resolution and taking into account the visualizations above that appear to show a return back down in homes' sale prices in 2021, we regress neighborhood and year as factors for the outcome of average sale price of a home. This will allow for rough estimation of the factor of 2020, as compared to 2017, and then of 2021 as compared to 2017 (and indirectly to 2020), assuming the same neighborhood. We do this with the ~10% data sample.
 inflation_random <- lm(avg_sale_price ~ neighborhood+as.factor(year.x), data=rando)
 summary(inflation_random)
 confint(inflation_random)
+```
 
-#Observation: we see that there is a clear spike in a home's average sale price in 2020 with an effect estimate of an increase in the millions USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates (and hence why we don't fixate on the exact effect estimate) but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike. 
+We saw that there is a clear spike in a home's average sale price in 2020 with an effect estimate of an increase in the millions USD in 2020 as compared to 2017, holding the neighborhood constant. Particularly notable is the *decrease* in a home's average sale price in 2021 as compared to 2017, holding the neighborhood constant. This is not useful for exact estimates (and hence why we don't fixate on the exact effect estimate) but rather a fine check of whether the COVID19 pandemic has led to a clear and sustained spike in home average sale prices. The graphs above and the multiple linear regression appear to indicate that there is not a sustained spike.
 
-#We move on to take advantage of our recently created binary variable 'SALE', which is coded SALE = 1 for sale prices above the median and SALE = 0 for sale prices including and below the median. We will also take advantage of our 
+# GLM model
+
+We moved on to take advantage of our recently created binary variable "SALE" (explained above in `6.6 Cumulative data for analysis`) to fit a GLM model. Given the large number of observations, we had the luxury of using 70% of our data to train and 30% to test for the outcome of high vs low expected sale price. The overall accuracy for a given random sample ranges in the 70s%, sensitivity of 90s% and specificity of 30-40s%. 
+
+```{r}
+set.seed(1)
 index_train<- createDataPartition(y = rando$SALE, times =1, p=0.7, list = FALSE)
 train_set <- slice(rando, index_train)
 test_set <- slice(rando, -index_train)
@@ -1040,41 +1093,13 @@ glm_fit <- train_set %>% mutate(y=as.numeric(SALE =="1")) %>% glm(SALE~neighborh
 p_hat_logit <- predict(glm_fit, newdata = test_set, type="response")
 y_hat_logit <- ifelse(p_hat_logit > 0.5, "1", "0")
 confusionMatrix(data = as.factor(y_hat_logit), reference = test_set$SALE)
-#Observation: given 1 million observations, we had the luxury of using 70% of our data to train and 30% to test for the outcome of high vs low expected sale price. The overall accuracy is 76% with a sensitivity of 94% and specificity of 42%. 
 ```
 
-## Decision tree model
+# Decision tree model
 
 We started this analysis to try to answer the question: Can we use data from 2017-2019 to predict housing prices in 2020? 
 
-Step 1: Build a training and test set from 2017-2019
-
-```{r }
-# Dataset of years 2017-2019
-
-#prepandemic_long_new <- full_long_new %>% filter(year.x %in% c(2017, 2018, 2019))
-#prepandemic <- lm(avg_sale_price ~ neighborhood+as.factor(year.x) + type, data=prepandemic_long_new)
-#summary(prepandemic)
-#confint(prepandemic)
-
-#Dataset of year 2020
-#pandemic_long_new <- full_long_new %>% filter(year.x %in% c(2020))
-#pandemic <- lm(avg_sale_price ~ neighborhood, data=pandemic_long_new)
-#summary(pandemic)
-#confint(pandemic)
-
-# Dataset of year 2021
-#postpandemic_long_new <- full_long_new %>% filter(year.x %in% c(2021))
-#postpandemic <- lm(avg_sale_price ~ neighborhood, data=postpandemic_long_new)
-#summary(postpandemic)
-#confint(postpandemic)
-```
-
-## Decision tree model
-
-We started this analysis to try to answer the question: Can we use data from 2017-2019 to predict housing prices in 2020? 
-
-Step 1: Build a training and test set from 2017-2019
+Step 1: We initially built a training and test set from 2017-2019
 
 ```{r}
 # Dataset of years 2017-2019
@@ -1089,10 +1114,6 @@ post_complete <- rando %>%
 ```
 
 ```{r}
-# Decision tree using data from 2017-2019 split into training and test sets
-
-# Stratify the sample into training and testing data
-
 set.seed(1)
 
 stratified <- createDataPartition(pre_complete$avg_sale_price, 0.7, list = F, times = 1)
@@ -1100,14 +1121,16 @@ train_set <- pre_complete[stratified, ]
 test_set <- pre_complete[-stratified, ]
 
 dim(train_set)
-dim(test_set)
+```
 
-# Decision tree on test set from 2017 - 2019
+Step 2: Decision tree built on the training set collected from 2017-2019 and applied on the test set from 2017-2019.
 
+```{r}
 tree_fit <- train_set %>%
  rpart(avg_sale_price ~ ., data = ., maxdepth = 5, minbucket = 1)
 
 tree_fit
+
 rpart.plot(tree_fit, type = 3, digits = 3, fallen.leaves = T, tweak = 0.75)
 
 tree_pred <- predict(tree_fit, newdata = test_set)
@@ -1119,12 +1142,20 @@ mean(abs(tree_pred - test_set$avg_sale_price))
 mean((tree_pred - test_set$avg_sale_price)^2)
 ```
 
-```{r}
-# Decision tree using training set as all data from 2017-2019 and test set as all data from 2020
+Even when limited to 2017-2019, where COVID-19 would not be a factor, this was not a great model, since it only contains 4 terminal leaf nodes that were determined by two big groups of neighborhoods and a further splitting of condo vs house.
 
+We went back to Step 1 and tweaked our model to instead try to build a decision tree using all data from 2017-2019 as the training set, and then applying it to a test set consisting of all data from 2020. We thought that we could compare the predicted values from this model to the actual sales from 2020, and that this comparison might give us an idea of the effect of COVID-19 on prices in 2020.
+
+Step 1: Training set from all data from 2017-2019
+
+```{r}
 tree_fit_2 <- pre_complete %>% 
   rpart(avg_sale_price ~ ., data = ., maxdepth = 5, minbucket = 1)
+```
 
+Step 2: Applied on all data from 2020
+
+```{r}
 tree_fit_2
 rpart.plot(tree_fit_2, type = 3, digits = 3, fallen.leaves = T, tweak = 0.75)
 
@@ -1137,4 +1168,4 @@ mean(abs(tree_pred_2 - post_complete$avg_sale_price))
 mean((tree_pred_2 - post_complete$avg_sale_price)^2)
 ```
 
-
+This is still quite a poor model. We opted to use the regression models instead.
